@@ -1,0 +1,277 @@
+# 共通設計
+
+全ゲームに共通するルーム・端末・通信・ゲームエンジンの設計をまとめる。
+個別ゲームのドキュメントは、ここで定義する `GameDefinition` インターフェースに沿って記述する。
+
+## 1. 全体構成
+
+```
+[ブラウザ (SPA)] ──WebSocket──> [Worker (ルーティング)] ──> [Room Durable Object (1ルーム=1インスタンス)]
+      │                                  │
+      └──HTTP (静的アセット)──────────────┘  (Workers Static Assets)
+```
+
+- **Worker**
+  - `POST /api/rooms` : ルーム作成。ルームコードを発行し、DO を初期化する。
+  - `GET  /api/rooms/:code` : ルームの存在確認・ゲーム種別・参加可否（ロビー画面のプレビュー用）。
+  - `GET  /api/rooms/:code/ws` : WebSocket アップグレード。`idFromName(code)` で DO に転送する。
+  - それ以外は静的アセット（SPA）を返す。`/r/:code` は SPA の参加画面。
+- **Room Durable Object**
+  - ルームの全状態（端末、プレイヤー、ゲーム状態、累計杯数）を保持する唯一の正（Single Source of Truth）。
+  - WebSocket Hibernation API を利用し、待機中の課金を抑える。
+  - タイマーは DO Alarm で実装する。
+  - ゲームロジックは純粋関数として実装された `GameDefinition` を呼び出すだけにする（DO はI/Oと永続化の責務のみ）。
+- **フロントエンド**
+  - SPA（React 等を想定）。サーバーから受け取った「その端末向けのビュー」を描画するだけで、ゲームロジックは持たない（楽観的更新もしない。飲み会用途なので遅延は許容範囲）。
+
+## 2. ルームのライフサイクル
+
+```mermaid
+stateDiagram-v2
+  [*] --> lobby: ルーム作成
+  lobby --> playing: ホストが開始（人数条件OK）
+  playing --> result: ゲームが敗者を確定
+  result --> playing: もう1回（同設定）
+  result --> lobby: メンバー・設定変更
+  lobby --> [*]: 全端末切断から24時間
+  result --> [*]: 全端末切断から24時間
+```
+
+- **ルーム作成**：トップページでゲームを選択 → 作成。作成した端末が **ホスト端末** になる。
+- **ルームコード**：6文字（紛らわしい文字 `0 O 1 I L` を除いた英大文字＋数字）。参加URLは `https://<host>/r/<code>`。QRコードも表示する。
+- **途中参加**：`lobby` と `result` フェーズでのみプレイヤー追加可能。`playing` 中に来た端末は **観戦** として接続し、次のラウンドから参加できる。
+- **削除**：最後の接続が切れたら 24 時間後の Alarm で storage を `deleteAll()` する。
+
+## 3. 端末とプレイヤー
+
+「端末（Device）」と「プレイヤー（Player）」を分離するのがこの設計の要点。
+
+```ts
+type DeviceId = string;  // 端末ごとに発行。localStorage に保存し再接続時に使う
+type PlayerId = string;
+
+interface Device {
+  id: DeviceId;
+  token: string;           // 再接続認証用の秘密トークン（localStorage）
+  isHost: boolean;
+  role: 'table' | 'personal';  // 表示の役割（後述）
+  connected: boolean;
+  lastSeenAt: number;
+}
+
+interface Player {
+  id: PlayerId;
+  name: string;            // 最大12文字
+  color: string;           // 自動割当のアイコン色
+  deviceId: DeviceId;      // このプレイヤーを操作する端末
+  drinks: number;          // ルーム内累計杯数
+  passesLeft: number;      // 残りパス権
+  active: boolean;         // 次のラウンドに参加するか
+  character: CharacterId;  // アイコンに使う動物キャラ（重複なしで自動割当、変更可）
+}
+```
+
+- **席順**：ルームは `playerOrder: PlayerId[]` を持ち、ロビーでドラッグして実際の座席順（時計回り）に並べ替えられる。手番制のゲーム（101、ライアーダイス）はこの順で回す。開始プレイヤーはランダム。
+
+- 1つの端末に **複数のプレイヤー** をぶら下げられる。
+  - 共有タブレット：1端末に全員（または数人）を登録。
+  - 各自スマホ：1端末に1プレイヤー。
+  - 混在：タブレットに3人、スマホ2台に1人ずつ、なども可能。
+- 端末の `role`
+  - `personal`：自分のプレイヤーの操作画面を中心に表示する（スマホ）。
+  - `table`：場の状況を大きく表示する（テーブルに置いたタブレット）。ぶら下がったプレイヤーの操作も行う。プレイヤー0人の `table` 端末は「観戦用の大画面」になる。
+  - デフォルトは「プレイヤー数が1なら personal、それ以外は table」。手動切替可。
+
+### 共有端末での隠し情報（ホットシート）
+
+手札・役職・秘密の選択などを、テーブルに置いた1つの端末で扱うための共通UI。
+端末は持ち上げて回さず、置いたまま該当プレイヤーが手元に引き寄せて操作する想定。
+
+1. 「**〇〇さんの番です（他の人は見ないで）**」画面（名前とキャラを大きく表示）
+2. 本人が「**自分です（タップで表示）**」を押す → 隠し情報と操作UIを表示
+3. 操作完了、または「**隠す**」を押す → 1に戻る（次のプレイヤー）
+
+- サーバーは共有端末にぶら下がった全プレイヤー分のビューを送る。表示の制御はクライアント側で行う（悪意あるユーザーは想定しない。飲み会用途のため）。
+- ゲーム側は「今、誰が操作・確認する必要があるか」を `pendingPlayers(state)` で返し、共通UIがそれに従って順番を制御する（席順に並べる）。
+- 隠し情報がない入力（ハイローの予想など）でも、全員同時に秘密で選ぶゲームでは他人の選択を見て真似できないようにホットシートを使う。
+
+## 4. 通信プロトコル（WebSocket）
+
+JSON メッセージ。すべて `type` フィールドを持つ。
+
+> 実装上の正は `app/protocol.ts`。以下は設計時の一覧で、実装ではメッセージ名を一部簡略化している（例：`room.updateConfig` → `room.config`、`room.rematch` は `room.start` に統合、ロビーでのゲーム変更 `room.game` を追加）。
+
+### クライアント → サーバー
+
+| type | ペイロード | 説明 |
+| --- | --- | --- |
+| `hello` | `{ deviceId?, token?, clientVersion }` | 接続直後に送る。初回は deviceId なしで新規発行 |
+| `player.add` | `{ name }` | この端末にプレイヤーを追加 |
+| `player.update` | `{ playerId, name?, active? }` | 名前変更・次ラウンド不参加 |
+| `player.remove` | `{ playerId }` | 削除（lobby/result のみ） |
+| `room.reorderPlayers` | `{ playerOrder }` | 席順の変更（lobby/result のみ） |
+| `device.setRole` | `{ role }` | table / personal 切替 |
+| `room.updateConfig` | `{ config }` | ゲーム設定の変更（ホストのみ、lobby のみ） |
+| `room.start` | `{}` | ゲーム開始（ホストのみ） |
+| `room.rematch` | `{}` | もう1回（ホストのみ、result のみ） |
+| `room.backToLobby` | `{}` | ロビーに戻る（ホストのみ） |
+| `game.action` | `{ playerId, action, seq }` | ゲーム操作。`playerId` はこの端末配下である必要がある |
+| `result.pass` | `{ playerId }` | 敗者がパス権を使う |
+| `time.ping` | `{ t0 }` | 時刻同期（カウントダウン表示の補正用） |
+
+### サーバー → クライアント
+
+| type | ペイロード | 説明 |
+| --- | --- | --- |
+| `welcome` | `{ deviceId, token, serverTime }` | 端末情報。クライアントは localStorage に保存 |
+| `room` | `RoomView` | ルーム全体の公開情報（フェーズ、メンバー、設定、累計杯数）。変更のたびに送信 |
+| `game` | `{ version, table, players: Record<PlayerId, PlayerView> }` | ゲーム状態のビュー。`players` はこの端末配下のプレイヤー分のみ |
+| `event` | `{ name, data }` | 演出用の一過性イベント（爆発、ルーレット開始など） |
+| `ack` | `{ seq }` | 操作の成功 |
+| `error` | `{ seq?, code, message }` | 操作の失敗（手番でない、不正な値など） |
+| `time.pong` | `{ t0, serverTime }` | 時刻同期の応答 |
+
+- `version` はゲーム状態の単調増加番号。クライアントは古い version を無視する。
+- 再接続時はサーバーが最新の `room` と `game` を即送信する（差分ではなく全量。状態が小さいため）。
+
+## 5. ゲームエンジンのインターフェース
+
+各ゲームは以下を実装する。**純粋関数**（乱数・現在時刻は `ctx` から受け取る）とし、ユニットテストしやすくする。
+
+```ts
+interface GameDefinition<Config, State, Action, TableView, PlayerView> {
+  id: string;                       // 'liars-dice' など
+  name: string;
+  minPlayers: number;
+  maxPlayers: number;
+  deviceSupport: { shared: 'best' | 'ok' | 'poor'; personal: 'best' | 'ok' | 'poor' };
+  defaultConfig: Config;
+  configSchema: ConfigField[];      // 設定UIの自動生成用（数値・選択肢・トグル）
+  validateConfig(config: Config, playerCount: number): string | null;
+
+  setup(players: PlayerInfo[], config: Config, ctx: Ctx): Step<State>;
+  applyAction(state: State, playerId: PlayerId, action: Action, ctx: Ctx): Step<State> | GameError;
+  onTimer(state: State, timerId: string, ctx: Ctx): Step<State>;
+  onPlayerDisconnect?(state: State, playerId: PlayerId, ctx: Ctx): Step<State>;
+
+  tableView(state: State): TableView;
+  playerView(state: State, playerId: PlayerId): PlayerView;
+  pendingPlayers(state: State): PlayerId[];   // 今、操作・確認が必要なプレイヤー（ホットシート・「〇〇待ち」表示用）
+}
+
+interface Ctx {
+  now: number;             // サーバー時刻(ms)
+  random(): number;        // シード付き PRNG（state にシードを保持し再現可能に）
+}
+
+interface Step<State> {
+  state: State;
+  timers?: TimerCommand[];    // { set: id, at } / { clear: id }
+  events?: GameEvent[];       // 演出用イベント（全端末に送信）
+  result?: RoundResult;       // これが返るとラウンド終了
+}
+
+interface RoundResult {
+  losers: PlayerId[];          // 通常1人
+  reason: string;              // 「爆弾の数字 42 を踏んだ」など表示用
+  tieBreak?: { candidates: PlayerId[]; chosen: PlayerId }; // ルーレットを経た場合
+  detail: unknown;             // ゲーム固有の結果表示データ
+}
+```
+
+### DO 側の処理フロー
+
+```
+onMessage(game.action)
+  → deviceがplayerIdを所有しているか検証
+  → def.applyAction(state, playerId, action, ctx)
+  → GameError なら error を返す
+  → state を storage.put（1キーにまとめて保存）
+  → timers をタイマーキューに反映し、最も早いものを setAlarm
+  → events をブロードキャスト
+  → 各端末に tableView / 配下プレイヤーの playerView を送信
+  → result があれば drinks を加算し、room.phase = 'result'
+```
+
+### タイマー
+
+DO の Alarm は1つしか設定できないため、DO 内で `{ id, at }[]` のタイマーキューを持ち、最も早い時刻を `setAlarm` する。
+Alarm 発火時に期限切れのものを順に `def.onTimer` に渡す。
+クライアントにはビューの中で `deadline`（サーバー時刻）を渡し、カウントダウン表示はクライアントで行う（時刻オフセットは `time.ping` で補正）。
+
+### 切断時の扱い
+
+- 切断してもプレイヤーは即座には除外しない。手番タイムアウトなど、各ゲームのタイマーで自然に進行させる。
+- `onPlayerDisconnect` はオプション。必要なゲーム（投票系で「全員の投票待ち」になるもの）では、ホストが「〇〇さんをスキップ」できるボタンを共通で提供する。
+
+## 6. タイブレーク（ルーレット）
+
+同点で敗者が複数になる場合の共通処理。
+
+- ゲームは `tieBreak(candidates, ctx)` ヘルパーを呼び、`ctx.random()` で1人を選ぶ。結果はサーバー側で即確定。
+- イベント `roulette` を `{ candidates, chosen, durationMs: 3000 }` で送信し、クライアントは候補者の名前が高速で切り替わって減速し `chosen` で止まる演出を行う。
+- 演出中に結果画面を出さないよう、`result` フェーズへの遷移を通知する `room` メッセージに `revealAt`（サーバー時刻）を含め、クライアントはその時刻まで結果を伏せる。
+
+## 7. 結果画面（共通）
+
+- 敗者の名前を大きく表示（「〇〇さん、飲んで！🍺」）、理由、ゲーム固有の詳細。
+- 敗者端末では「パス権を使う」ボタン（残りがあれば）。
+- ルーム内の累計杯数ランキング。
+- ホストに「もう1回」「ロビーへ（メンバー・設定変更）」ボタン。
+
+## 8. 永続化
+
+- DO storage のキー
+  - `room` : `{ code, gameId, config, phase, hostDeviceId, createdAt, penaltyText }`
+  - `devices` : `Record<DeviceId, Device>`
+  - `players` : `Record<PlayerId, Player>` と表示順 `playerOrder: PlayerId[]`
+  - `game` : `{ version, state, timers, rngSeed }`
+  - `history` : 直近20ラウンドの `RoundResult`（結果表示・累計用）
+- 状態は小さいため、変更のたびに該当キーを丸ごと `put` する。
+- WebSocket には `serializeAttachment({ deviceId })` で端末IDを紐付け、Hibernation からの復帰時に復元する。
+
+## 9. キャラクターアセット
+
+お題データは持たない（全ゲームがお題不要）。代わりに動物キャラクターを共通アセットとして持つ。
+
+```ts
+type CharacterId = 'pig' | 'wolf' | 'cat' | 'dog' | 'rabbit' | 'bear' | 'fox' | 'panda' | 'penguin' | 'frog' | 'lion' | 'owl';
+
+interface Character {
+  id: CharacterId;
+  name: string;      // 「ネコ」
+  color: string;     // テーマカラー（色だけでも区別できるよう、色覚に配慮した12色）
+  emoji: string;     // アイコン（初期実装は絵文字。後で SVG に差し替え可能）
+}
+```
+
+- プレイヤーアイコン：ルーム参加時に未使用のキャラを自動割当。ただし `pig` と `wolf` は狼と子豚で役として使うため、プレイヤーアイコンには割り当てない。
+- 被ったらアウト：選択肢の動物として使う。
+- 狼と子豚：子豚・狼の立ち絵と、わら・木・レンガの家のイラスト。
+
+## 10. ディレクトリ構成（想定）
+
+```
+src/
+  worker/
+    index.ts            # ルーティング
+    room.ts             # Room Durable Object
+    protocol.ts         # メッセージ型定義（クライアントと共有）
+  games/
+    types.ts            # GameDefinition 等
+    registry.ts         # id → GameDefinition
+    common/tiebreak.ts
+    common/cards.ts     # トランプ・デッキ生成・シャッフル
+    common/dice.ts
+    hundred-one/index.ts
+    liars-dice/index.ts
+    high-low/index.ts
+    kabuttara-out/index.ts
+    wolf-and-pigs/index.ts
+  assets/
+    characters/         # 動物キャラ SVG
+  client/
+    ...                 # SPA。games/<id>/ に各ゲームの UI コンポーネント
+```
+
+`src/games` はブラウザと Worker の両方から import できる（型の共有、将来のローカル単体プレイ用）。
