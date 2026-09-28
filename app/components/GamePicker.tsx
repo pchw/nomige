@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { GAME_META } from "~/games/meta";
 import { GAME_ORDER, GAMES } from "~/games/registry";
 import type { GameId } from "~/games/types";
+import { RulesButton } from "./Rules";
 
 /** ゲームカードの中身（トップ・ロビー・結果画面で共通） */
 export function GameCardBody({ id }: { id: GameId }) {
@@ -78,21 +79,27 @@ export function GamePicker({
         const issue = playerCountIssue(id, playerCount);
         const selected = id === current;
         const disabled = !canPick || selected || (strictCount && issue !== null);
+        const unavailable = !selected && strictCount && issue !== null;
         return (
-          <button
+          <div
             key={id}
             data-game={id}
-            type="button"
-            className={`game-card game-card-btn ${selected ? "game-card-selected" : ""}`}
+            className={`game-card game-card-pickable ${selected ? "game-card-selected" : ""} ${unavailable ? "game-card-unavailable" : ""}`}
             style={accentStyle(id)}
-            disabled={disabled}
-            aria-pressed={selected}
-            onClick={() => onPick(id)}
           >
-            <GameCardBody id={id} />
-            {selected && <span className="game-card-note">選択中</span>}
-            {!selected && issue && <span className="game-card-note game-card-warn">{issue}</span>}
-          </button>
+            <button
+              type="button"
+              className="game-card-main"
+              disabled={disabled}
+              aria-pressed={selected}
+              onClick={() => onPick(id)}
+            >
+              <GameCardBody id={id} />
+              {selected && <span className="game-card-note">選択中</span>}
+              {!selected && issue && <span className="game-card-note game-card-warn">{issue}</span>}
+            </button>
+            <RulesButton gameId={id} />
+          </div>
         );
       })}
     </div>

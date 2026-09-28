@@ -2,6 +2,8 @@ import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { useRoom } from "~/client/useRoom";
 import { GAMES } from "~/games/registry";
+import type { GameId } from "~/games/types";
+import { RulesProvider, type RulesTarget } from "./Rules";
 import { GameScreen } from "./GameScreen";
 import { Lobby } from "./Lobby";
 import { ResultScreen } from "./ResultScreen";
@@ -55,52 +57,75 @@ export function RoomApp({ code }: { code: string }) {
   const isHost = !!room && room.hostDeviceId === deviceId;
   const showShare = shareOpen ?? (room?.phase === "lobby" && room.players.length === 0);
 
+  // ルールのモーダル。ホストがゲームを切り替えたら、他の端末では新しいゲームのルールを自動で開く
+  // （ホストはロビーで同じルールを見ているので開かない）
+  const [rulesTarget, setRulesTarget] = useState<RulesTarget | null>(null);
+  const [seenGameId, setSeenGameId] = useState<GameId | null>(null);
+  if (room && room.gameId !== seenGameId) {
+    setSeenGameId(room.gameId);
+    if (seenGameId !== null && room.phase === "lobby" && !isHost) {
+      setRulesTarget({ gameId: room.gameId, switched: true });
+    }
+  }
+  const configFor = (gameId: GameId) => (room?.gameId === gameId ? room.config : undefined);
+
   return (
-    <main className="page room-page">
-      <header className="room-header">
-        <a href="/" className="logo">
-          NOMI<span>GE</span>
-        </a>
-        {room && <span className="room-game">{GAMES[room.gameId].name}</span>}
-        <button
-          type="button"
-          className="btn btn-sm btn-yellow room-code"
-          aria-label="招待リンクとQRコードを表示"
-          onClick={() => setShowShare(!showShare)}
-        >
-          {isHost && <span title="ホスト">👑</span>}
-          {code}
-        </button>
-      </header>
+    <RulesProvider target={rulesTarget} onChange={setRulesTarget} configFor={configFor}>
+      <main className="page room-page">
+        <header className="room-header">
+          <a href="/" className="logo">
+            NOMI<span>GE</span>
+          </a>
+          {room && <span className="room-game">{GAMES[room.gameId].name}</span>}
+          {room && (
+            <button
+              type="button"
+              className="btn btn-sm btn-rules header-rules"
+              onClick={() => setRulesTarget({ gameId: room.gameId })}
+            >
+              📖ルール
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-sm btn-yellow room-code"
+            aria-label="招待リンクとQRコードを表示"
+            onClick={() => setShowShare(!showShare)}
+          >
+            {isHost && <span title="ホスト">👑</span>}
+            {code}
+          </button>
+        </header>
 
-      {status !== "open" && (
-        <div className="conn-banner">
-          {status === "connecting" ? "接続中…" : "再接続しています…"}
-        </div>
-      )}
-      {error && <div className="toast">{error}</div>}
+        {status !== "open" && (
+          <div className="conn-banner">
+            {status === "connecting" ? "接続中…" : "再接続しています…"}
+          </div>
+        )}
+        {error && <div className="toast">{error}</div>}
 
-      {showShare && <SharePanel code={code} onClose={() => setShowShare(false)} />}
+        {showShare && <SharePanel code={code} onClose={() => setShowShare(false)} />}
 
-      {!room || !deviceId ? (
-        <div className="panel waiting">読み込み中…</div>
-      ) : room.phase === "lobby" ? (
-        <Lobby room={room} deviceId={deviceId} isHost={isHost} send={send} />
-      ) : room.phase === "playing" && game ? (
-        <GameScreen room={room} game={game} players={players} send={send} serverNow={serverNow} />
-      ) : room.phase === "result" ? (
-        <ResultScreen
-          room={room}
-          game={game}
-          players={players}
-          deviceId={deviceId}
-          isHost={isHost}
-          send={send}
-          serverNow={serverNow}
-        />
-      ) : (
-        <div className="panel waiting">読み込み中…</div>
-      )}
-    </main>
+        {!room || !deviceId ? (
+          <div className="panel waiting">読み込み中…</div>
+        ) : room.phase === "lobby" ? (
+          <Lobby room={room} deviceId={deviceId} isHost={isHost} send={send} />
+        ) : room.phase === "playing" && game ? (
+          <GameScreen room={room} game={game} players={players} send={send} serverNow={serverNow} />
+        ) : room.phase === "result" ? (
+          <ResultScreen
+            room={room}
+            game={game}
+            players={players}
+            deviceId={deviceId}
+            isHost={isHost}
+            send={send}
+            serverNow={serverNow}
+          />
+        ) : (
+          <div className="panel waiting">読み込み中…</div>
+        )}
+      </main>
+    </RulesProvider>
   );
 }

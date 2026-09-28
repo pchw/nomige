@@ -4,6 +4,7 @@ import { GAMES } from "~/games/registry";
 import type { GameId } from "~/games/types";
 import { MAX_NAME_LENGTH, MAX_PLAYERS, type ClientMessage, type RoomView } from "~/protocol";
 import { GamePicker } from "./GamePicker";
+import { RulesView } from "./Rules";
 import { Avatar } from "./ui";
 
 interface Props {
@@ -13,21 +14,16 @@ interface Props {
   send: (msg: ClientMessage) => void;
 }
 
-export function GameRules({ gameId }: { gameId: GameId }) {
+/** ロビーに出す詳しいルール（今の設定に合わせた文面） */
+export function GameRules({ gameId, config }: { gameId: GameId; config: Record<string, unknown> }) {
   const game = GAMES[gameId];
   const meta = GAME_META[gameId];
   return (
     <section className="panel rules" style={{ "--accent": meta.color } as React.CSSProperties}>
       <h2 className="rules-title">
         <span className="game-emoji">{meta.emoji}</span>
-        {game.name}
+        {game.name} のルール
       </h2>
-      <p className="game-tagline">{game.tagline}</p>
-      <ol className="rules-list">
-        {meta.rules.map((r) => (
-          <li key={r}>{r}</li>
-        ))}
-      </ol>
       <ul className="tags">
         <li>
           {game.minPlayers}〜{game.maxPlayers}人
@@ -35,6 +31,9 @@ export function GameRules({ gameId }: { gameId: GameId }) {
         <li>{meta.duration}</li>
         <li>{meta.style}</li>
       </ul>
+      <div className="rules-body">
+        <RulesView gameId={gameId} config={config} />
+      </div>
     </section>
   );
 }
@@ -76,8 +75,6 @@ export function Lobby({ room, deviceId, isHost, send }: Props) {
           strictCount={false}
         />
       </section>
-
-      <GameRules gameId={room.gameId} />
 
       <section className="panel">
         <h3 className="panel-title">
@@ -155,6 +152,8 @@ export function Lobby({ room, deviceId, isHost, send }: Props) {
           タブレット1台で遊ぶときは、この端末に全員の名前を追加してください。
         </p>
       </section>
+
+      <GameRules gameId={room.gameId} config={room.config} />
 
       <section className="panel">
         <h3 className="panel-title">
