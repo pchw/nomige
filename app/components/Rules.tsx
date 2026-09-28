@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { GAME_META } from "~/games/meta";
 import { GAMES } from "~/games/registry";
 import { COMMON_RULES, rulesFor, type RuleSection } from "~/games/rules";
+import { RuleAnimation } from "./RuleAnimation";
 import type { GameId } from "~/games/types";
 
 type Config = Record<string, unknown>;
@@ -62,6 +63,8 @@ export function RulesView({ gameId, config }: { gameId: GameId; config: Config }
   const doc = rulesFor(gameId, config);
   return (
     <div className="rules-view">
+      <RuleAnimation gameId={gameId} config={config} />
+      <h4 className="rules-detail-head">詳しいルール</h4>
       <p className="rule-goal">{doc.goal}</p>
       {doc.sections.map((s) => (
         <Section key={s.title} section={s} />
