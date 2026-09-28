@@ -65,6 +65,34 @@ describe("被ったらアウト", () => {
     expect(end.result?.losers).toEqual(["a"]);
   });
 
+  it("おじゃま役は「おじゃましない」を選べ、残っている人は選べない", () => {
+    let s = pickAll(setup(), { a: "cat", b: "cat", c: "dog", d: "rabbit" }).state;
+    s = kabuttaraOut.onTimer(s, "reveal", ctxAt(0)).state;
+    expect(() => kabuttaraOut.applyAction(s, "a", { type: "skip" }, ctxAt(0))).toThrow(GameError);
+    s = kabuttaraOut.applyAction(s, "c", { type: "skip" }, ctxAt(0)).state;
+    s = kabuttaraOut.applyAction(s, "d", { type: "skip" }, ctxAt(0)).state;
+    expect(kabuttaraOut.pendingPlayers(s)).toEqual(["a", "b"]);
+    s = kabuttaraOut.applyAction(s, "a", { type: "pick", animal: "cat" }, fixedCtx(0, 0.99)).state;
+    const step = kabuttaraOut.applyAction(
+      s,
+      "b",
+      { type: "pick", animal: "dog" },
+      fixedCtx(0, 0.99),
+    );
+    expect(step.state.phase).toBe("revealing");
+    expect(step.state.remaining).toHaveLength(2);
+    expect(step.state.lastReveal?.retry).toBe(true);
+  });
+
+  it("おまかせで、残っている人はランダムな動物、おじゃま役は選ばずに締め切る", () => {
+    let s = pickAll(setup(), { a: "cat", b: "cat", c: "dog", d: "rabbit" }).state;
+    s = kabuttaraOut.onTimer(s, "reveal", ctxAt(0)).state;
+    s = kabuttaraOut.applyAction(s, "a", { type: "pick", animal: "cat" }, ctxAt(0)).state;
+    const step = kabuttaraOut.autoAct(s, ctxAt(0));
+    expect(step.state.phase).toBe("revealing");
+    expect(Object.keys(step.state.lastReveal!.picks).toSorted()).toEqual(["a", "b"]);
+  });
+
   it("おじゃま役なしなら抜けた人は選べない", () => {
     let s = pickAll(setup({ spoilers: false }), {
       a: "cat",

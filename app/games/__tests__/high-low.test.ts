@@ -59,16 +59,29 @@ describe("ハイロー", () => {
     expect(kinds).toEqual(["color", "highLow", "inOut", "suit", "highLow"]);
   });
 
-  it("時間切れで未予想の人は外れ扱い", () => {
-    let step = highLow.applyAction(
+  it("全員が予想するまで締め切らない（時間では進まない）", () => {
+    const step = highLow.applyAction(
       setup([card(5, "H")]),
       "a",
       { type: "guess", guess: "red" },
       ctxAt(0),
     );
-    step = highLow.onTimer(step.state, "guess", ctxAt(10_000));
-    expect(step.state.lastReveal?.wrong).toEqual(["b", "c"]);
-    expect(step.state.remaining).toEqual(["b", "c"]);
+    expect(step.state.phase).toBe("guessing");
+    expect(highLow.onTimer(step.state, "guess", ctxAt(999_999)).state.phase).toBe("guessing");
+    expect(highLow.pendingPlayers(step.state)).toEqual(["b", "c"]);
+  });
+
+  it("おまかせで未予想の人の分をランダムに予想して締め切る", () => {
+    const s = highLow.applyAction(
+      setup([card(5, "H")]),
+      "a",
+      { type: "guess", guess: "red" },
+      ctxAt(0),
+    ).state;
+    const step = highLow.autoAct(s, ctxAt(0));
+    expect(step.state.phase).toBe("revealing");
+    expect(Object.keys(step.state.lastReveal!.guesses).toSorted()).toEqual(["a", "b", "c"]);
+    expect(step.state.lastReveal!.guesses.a).toBe("red");
   });
 
   it("降りた人は予想できない", () => {

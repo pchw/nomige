@@ -50,29 +50,6 @@ export function useNow(serverNow: () => number, intervalMs = 200): number {
   return now;
 }
 
-export function Countdown({
-  deadline,
-  total,
-  serverNow,
-}: {
-  deadline: number | null;
-  total: number;
-  serverNow: () => number;
-}) {
-  const now = useNow(serverNow, 100);
-  if (!deadline) return null;
-  const left = Math.max(0, deadline - now);
-  const ratio = Math.min(1, left / (total * 1000));
-  return (
-    <div className={`countdown ${left < 3000 ? "countdown-hurry" : ""}`}>
-      <span className="countdown-num">{Math.ceil(left / 1000)}</span>
-      <span className="countdown-bar">
-        <span style={{ width: `${ratio * 100}%` }} />
-      </span>
-    </div>
-  );
-}
-
 /** 押している間だけ中身を見せる（周りから覗かれにくくする） */
 export function HoldReveal({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);

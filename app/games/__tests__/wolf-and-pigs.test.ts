@@ -27,6 +27,12 @@ function pickAll(s: WolfAndPigsState, picks: Record<string, House>) {
 }
 
 describe("狼と子豚", () => {
+  it("役の確認待ちは、おまかせで確認済みにして選択へ進む", () => {
+    const { state } = wolfAndPigs.setup(players, wolfAndPigs.defaultConfig, ctxAt(0));
+    expect(state.phase).toBe("roleCheck");
+    expect(wolfAndPigs.autoAct(state, ctxAt(0)).state.phase).toBe("picking");
+  });
+
   it("全員が役を確認したら選択フェーズ", () => {
     expect(picking().phase).toBe("picking");
   });
@@ -83,8 +89,10 @@ describe("狼と子豚", () => {
     expect(wolfAndPigs.pendingPlayers(idled)).not.toContain("c");
   });
 
-  it("未選択者は時間切れでランダムな家に入る", () => {
-    const step = wolfAndPigs.onTimer(picking(), "pick", ctxAt(0));
+  it("時間では進まず、おまかせで未選択者をランダムな家に入れる", () => {
+    const s = picking();
+    expect(wolfAndPigs.onTimer(s, "pick", ctxAt(999_999)).state.phase).toBe("picking");
+    const step = wolfAndPigs.autoAct(s, ctxAt(0));
     expect(Object.keys(step.state.history[0].pigPicks)).toEqual(["a", "b", "c", "d"]);
   });
 });

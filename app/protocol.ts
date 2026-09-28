@@ -15,6 +15,8 @@ export type ClientMessage =
   | { type: "room.start" }
   | { type: "room.lobby" }
   | { type: "game.action"; playerId: PlayerId; action: unknown }
+  /** 「おまかせで進める」。最後の操作から AUTO_ACT_AFTER_MS 経過後のみ有効 */
+  | { type: "game.auto" }
   | { type: "result.pass"; playerId: PlayerId }
   | { type: "ping" };
 
@@ -57,6 +59,8 @@ export interface GameView {
   /** この端末で操作するプレイヤーのビューのみ */
   players: Record<PlayerId, unknown>;
   pending: PlayerId[];
+  /** 最後に誰かが操作した時刻（サーバー時刻） */
+  lastProgressAt: number;
 }
 
 export type ServerMessage =
@@ -68,6 +72,8 @@ export type ServerMessage =
   | { type: "pong"; serverTime: number };
 
 export const MAX_PLAYERS = 10;
+/** 誰も操作しない状態がこの時間続いたら「おまかせで進める」を出す */
+export const AUTO_ACT_AFTER_MS = 30_000;
 export const MAX_NAME_LENGTH = 12;
 export const PASSES_PER_PLAYER = 1;
 export const ROOM_CODE_PATTERN = /^[A-HJ-KM-NP-Z2-9]{6}$/;

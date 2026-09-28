@@ -65,7 +65,10 @@ export interface GameDefinition<C = any, S = any, A = any, TV = any, PV = any> {
   setup(players: PlayerId[], config: C, ctx: Ctx): Step<S>;
   /** 不正な操作は GameError を throw する */
   applyAction(state: S, playerId: PlayerId, action: A, ctx: Ctx): Step<S>;
+  /** 演出用タイマー（結果公開など）。プレイヤーの選択を時間で打ち切ることはしない */
   onTimer(state: S, timerId: string, ctx: Ctx): Step<S>;
+  /** 「おまかせで進める」：待っている人全員の分をアプリが代わりに選んで進める */
+  autoAct(state: S, ctx: Ctx): Step<S>;
   tableView(state: S): TV;
   playerView(state: S, playerId: PlayerId): PV;
   /** 今、操作・確認が必要なプレイヤー（ホットシート・「〇〇待ち」表示用） */

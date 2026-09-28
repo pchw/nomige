@@ -10,7 +10,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 人数 | 3〜10人 |
-| 時間 | 1分前後（1回 10 秒程度 × 数回） |
+| 時間 | 1分前後（1回十数秒 × 数回） |
 | 進行 | 全員同時 |
 | 共有端末 | ○（ホットシートで順番に選ぶ） |
 | 各自スマホ | ◎ |
@@ -19,7 +19,7 @@
 ## ルール
 
 1. 動物の選択肢は **人数+1 匹**（最低4匹、最大10匹）。ゲーム開始時に決まり、そのゲーム中は変わらない。
-2. 毎回、全員が同時に動物を1匹選ぶ（制限時間 10 秒）。選んでいる間、口頭で「ネコにする」などと言うのは自由（嘘でもよい）。
+2. 毎回、全員が同時に動物を1匹選ぶ（制限時間なし。全員が選んだら公開）。選んでいる間、口頭で「ネコにする」などと言うのは自由（嘘でもよい）。
 3. 一斉に公開する。
    - **まだ残っている人** のうち、他の誰とも被らなかった人は **セーフで抜ける**。
    - 被った人は残る。
@@ -29,7 +29,7 @@
 
 - 抜けた人も毎回動物を選ぶ。**おじゃま役の選択も「被り」の判定に含まれる**（おじゃま役同士・おじゃま役自身は被っても何も起きない）。
 - 残っている人を狙い撃ちして被せにいける。「最後に〇〇を負けさせたい」という駆け引きが生まれ、抜けた後も退屈しない。
-- おじゃま役は選ばなくてもよい（時間切れは「選ばない」扱い）。
+- おじゃま役は選ばなくてもよい。その場合は「今回はおじゃましない」を押す（選ぶか押すまで待つ）。
 
 ### のら動物
 
@@ -42,15 +42,17 @@
 - 残っている全員が被った場合もそのまま次の回へ。
 - 10回で決着しない場合は、残っている人からルーレットで1人。
 
-### 時間切れ
+### 待ち時間とおまかせ
 
-- 残っている人が時間内に選ばなかった場合は「被った」扱い（残る）。
+- 選択に制限時間はない。選ぶ必要がある人（残っている人と、おじゃま役 ON なら抜けた人）全員が決めるまで待つ。
+- 待っている人は画面上部に「〇〇さん待ち」と表示する。
+- 誰も操作しない状態が30秒続くと、全端末に「おまかせで進める」ボタンが出る（2回押しで実行。詳細は [common-design.md](./common-design.md#おまかせで進める)）。
+- おまかせ：残っている人で未選択の人は **ランダムな動物**、おじゃま役で未選択の人は「おじゃましない」扱いにして公開する。
 
 ### 設定
 
 | 設定 | 選択肢 | デフォルト |
 | --- | --- | --- |
-| 選択時間 | 5 / 10 / 15 秒 | 10秒 |
 | 動物の数 | 自動（人数+1）/ 4〜10 | 自動 |
 | おじゃま役 | ON / OFF | ON |
 | のら動物 | ON / OFF | ON |
@@ -63,13 +65,12 @@
 
 ```
 ┌──────────────────────────┐
+│ ボー・チー さん待ち          │  ← 待ち表示
 │ 3回目   残り 3人             │
-│ 🚩 A   B   C   （あなた）     │
-│                ⏱ 7        │
+│ A ✓  B …  C …              │
 │  🐱  🐶  🐰  🐻             │
-│  🦊  🐼  🐧  🐸             │  ← タップで選択。締め切りまで変更可
-│                          │
-│  選択済み 6/8               │
+│  🦊  🐼  🐧  🐸             │  ← タップで選択。全員が選ぶまで変更可
+│ [ 今回はおじゃましない ]      │  ← おじゃま役のときだけ
 └──────────────────────────┘
 ```
 
@@ -88,7 +89,6 @@
 
 ```ts
 interface KabuttaraOutConfig {
-  pickSeconds: 5 | 10 | 15;
   animalCount: 'auto' | number;   // 4〜10
   spoilers: boolean;              // おじゃま役
   strayAnimal: boolean;           // のら動物
@@ -101,15 +101,16 @@ interface KabuttaraOutConfig {
 interface KabuttaraOutState {
   phase: 'picking' | 'revealing' | 'done';
   round: number;
-  animals: CharacterId[];                 // 選択肢
+  animals: AnimalId[];                    // 選択肢
   players: PlayerId[];
   remaining: PlayerId[];
   exited: { playerId: PlayerId; round: number }[];
-  picks: Record<PlayerId, CharacterId>;
-  deadline: number | null;
+  picks: Record<PlayerId, AnimalId>;
+  skipped: PlayerId[];                    // 「今回はおじゃましない」を選んだおじゃま役
   lastReveal: {
-    picks: Record<PlayerId, CharacterId>;
-    stray: CharacterId | null;
+    round: number;
+    picks: Record<PlayerId, AnimalId>;
+    stray: AnimalId | null;
     collided: PlayerId[];                 // 残っている人のうち被った人
     exited: PlayerId[];                   // 今回抜けた人
     retry: boolean;                       // 全員被らなかったためやり直し
@@ -120,26 +121,30 @@ interface KabuttaraOutState {
 ### Action
 
 ```ts
-type KabuttaraOutAction = { type: 'pick'; animal: CharacterId };
+type KabuttaraOutAction =
+  | { type: 'pick'; animal: AnimalId }
+  | { type: 'skip' };                     // おじゃま役のみ
 ```
 
 ### 処理
 
-- `setup`：動物を `animalCount` 匹ランダムに選ぶ。`remaining` = 全員、`pick` タイマー。
-- `applyAction(pick)`：検証（`phase==='picking'`、`animals` に含まれる、おじゃま役 OFF なら `remaining` のみ）。上書き可。全員（おじゃま役が ON なら抜けた人も含む）が選んだら締め切り。
-- `onTimer(pick)`：締め切り。
+- `setup`：動物を `animalCount` 匹ランダムに選ぶ。`remaining` = 全員。
+- `applyAction(pick)`：検証（`phase==='picking'`、`animals` に含まれる、おじゃま役 OFF なら `remaining` のみ）。全員が決めるまでは上書き可。
+- `applyAction(skip)`：おじゃま役のみ。選択を取り消し `skipped` に入れる。
+- 選ぶ必要がある人全員が「選んだ」か「おじゃましない」になったら締め切り。
+- `autoAct`：残っている未選択者にランダムな動物を割り当て、おじゃま役の未選択者は選ばない扱いで締め切り。
 - 締め切り処理
   1. `strayAnimal` なら `ctx.random` でのら動物を選ぶ。
   2. 各動物の選択数を数える（全員の選択＋のら動物）。
-  3. `remaining` の各人について、選んだ動物の選択数が1なら「被らなかった」。未選択は「被った」扱い。
+  3. `remaining` の各人について、選んだ動物の選択数が1なら「被らなかった」。
   4. 被らなかった人が `remaining` 全員なら `retry`、そうでなければ被らなかった人を `exited` へ。
-  5. イベント `kabuttara.reveal`、`reveal` タイマー（2.5秒）。
+  5. イベント `kabuttara.reveal`、`reveal` タイマー（3.5秒。演出用で、プレイヤーの選択ではないので自動で進める）。
 - `onTimer(reveal)`
   - `remaining.length === 1` なら `done`、`result = { losers: remaining, reason: '${round}回目まで被り続けた' }`。
   - `round >= 10` ならルーレット。
   - 両方 OFF かつ `remaining.length === 2` ならルーレット。
-  - それ以外は `round++`、`picks` をクリアして次の回へ。
-- `pendingPlayers`：選択が必要な人のうち未選択の人。
+  - それ以外は `round++`、`picks` と `skipped` をクリアして次の回へ。
+- `pendingPlayers`：選ぶ必要がある人のうち、まだ決めていない人。
 
 ### View
 
@@ -147,17 +152,18 @@ type KabuttaraOutAction = { type: 'pick'; animal: CharacterId };
 interface KabuttaraOutTableView {
   phase: KabuttaraOutState['phase'];
   round: number;
-  animals: CharacterId[];
+  animals: AnimalId[];
   remaining: PlayerId[];
   exited: KabuttaraOutState['exited'];
-  pickedPlayerIds: PlayerId[];
-  deadline: number | null;
+  pickedPlayerIds: PlayerId[];            // 選んだ（またはおじゃましないを選んだ）人
+  spoilers: boolean;
   lastReveal: KabuttaraOutState['lastReveal'];
 }
 
 interface KabuttaraOutPlayerView {
-  role: 'remaining' | 'spoiler';
-  myPick: CharacterId | null;
+  role: 'remaining' | 'spoiler' | 'watching';
+  myPick: AnimalId | null;
+  skipped: boolean;
 }
 ```
 

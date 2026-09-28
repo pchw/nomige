@@ -4,12 +4,12 @@ import type {
   KabuttaraOutPlayerView,
   KabuttaraOutTableView,
 } from "~/games/kabuttara-out";
-import { Countdown, PlayerChip } from "../ui";
+import { PlayerChip } from "../ui";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<KabuttaraOutTableView, KabuttaraOutPlayerView, KabuttaraOutAction>;
 
-export function KabuttaraOutUI({ room, table, view, me, players, act, serverNow }: Props) {
+export function KabuttaraOutUI({ table, view, me, players, act }: Props) {
   const reveal = table.phase !== "picking" ? table.lastReveal : null;
 
   return (
@@ -43,13 +43,6 @@ export function KabuttaraOutUI({ room, table, view, me, players, act, serverNow 
               />
             ))}
           </div>
-        )}
-        {table.phase === "picking" && (
-          <Countdown
-            deadline={table.deadline}
-            total={Number(room.config.pickSeconds)}
-            serverNow={serverNow}
-          />
         )}
       </section>
 
@@ -116,6 +109,15 @@ export function KabuttaraOutUI({ room, table, view, me, players, act, serverNow 
               </button>
             ))}
           </div>
+          {view.role === "spoiler" && (
+            <button
+              type="button"
+              className={`btn btn-block skip-btn ${view.skipped ? "btn-selected" : ""}`}
+              onClick={() => act({ type: "skip" })}
+            >
+              {view.skipped ? "今回はおじゃましない（選択済み）" : "今回はおじゃましない"}
+            </button>
+          )}
         </section>
       )}
       {me && view?.role === "watching" && table.phase === "picking" && (

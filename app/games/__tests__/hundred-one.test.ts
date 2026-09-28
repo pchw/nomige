@@ -39,7 +39,8 @@ describe("101", () => {
     expect(step.state.total).toBe(3);
     expect(step.state.hands.a).toHaveLength(1);
     expect(step.state.turnIndex).toBe(1);
-    expect(step.timer).toEqual({ id: "turn", at: 11_000 });
+    // 選択を時間で打ち切らないので、手番にタイマーは付かない
+    expect(step.timer).toBeUndefined();
   });
 
   it("101 ちょうどはセーフ、超えたら負け", () => {
@@ -64,12 +65,6 @@ describe("101", () => {
     expect(step.state.turnIndex).toBe(2);
   });
 
-  it("終盤は制限時間が5秒になる", () => {
-    const s = setup({ total: 78, hands: { a: [num(3)], b: [], c: [] } });
-    const step = hundredOne.applyAction(s, "a", { type: "play", cardId: "n3" }, ctxAt(0));
-    expect(step.timer).toEqual({ id: "turn", at: 5000 });
-  });
-
   it("±10 は符号が必要、手番以外は出せない", () => {
     const s = setup({ hands: { a: [{ id: "p", kind: "pm10" }], b: [num(1)], c: [] } });
     expect(() => hundredOne.applyAction(s, "a", { type: "play", cardId: "p" }, ctxAt(0))).toThrow(
@@ -80,11 +75,16 @@ describe("101", () => {
     );
   });
 
-  it("時間切れで自動的に1枚出す（±10 は -10）", () => {
+  it("おまかせで手番の人の代わりに1枚出す（±10 は -10）", () => {
     const s = setup({ total: 20, hands: { a: [{ id: "p", kind: "pm10" }], b: [], c: [] } });
-    const step = hundredOne.onTimer(s, "turn", ctxAt(0));
+    const step = hundredOne.autoAct(s, ctxAt(0));
     expect(step.state.total).toBe(10);
     expect(step.state.lastPlay?.auto).toBe(true);
+  });
+
+  it("時間が経っても勝手には進まない", () => {
+    const s = setup();
+    expect(hundredOne.onTimer(s, "turn", ctxAt(999_999)).state).toEqual(s);
   });
 
   it("山札が尽きたら捨て札を混ぜ直す", () => {

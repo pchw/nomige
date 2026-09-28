@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   isStronger,
   type Face,
@@ -6,7 +6,7 @@ import {
   type LiarsDicePlayerView,
   type LiarsDiceTableView,
 } from "~/games/liars-dice";
-import { Countdown, PlayerChip, vibrate } from "../ui";
+import { PlayerChip } from "../ui";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<LiarsDiceTableView, LiarsDicePlayerView, LiarsDiceAction>;
@@ -30,7 +30,7 @@ export function Die({ face, hit, small }: { face: Face; hit?: boolean; small?: b
   );
 }
 
-export function LiarsDiceUI({ room, table, view, me, players, act, serverNow }: Props) {
+export function LiarsDiceUI({ table, view, me, players, act }: Props) {
   const last = table.bids.at(-1);
   // 入力中の宣言。宣言が進んだら（bids.length が変わったら）最小の吊り上げに戻す
   const [draft, setDraft] = useState<{ key: number; count: number; face: Face } | null>(null);
@@ -39,10 +39,6 @@ export function LiarsDiceUI({ room, table, view, me, players, act, serverNow }: 
   const { count, face } = current;
   const setCount = (fn: (c: number) => number) => setDraft({ ...current, count: fn(count) });
   const setFace = (f: Face) => setDraft({ ...current, face: f });
-
-  useEffect(() => {
-    if (view?.isMyTurn) vibrate(120);
-  }, [view?.isMyTurn]);
 
   const faces: Face[] = table.onesWild ? [2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
   const valid = isStronger({ count, face }, last);
@@ -60,7 +56,7 @@ export function LiarsDiceUI({ room, table, view, me, players, act, serverNow }: 
             <span className="bid-text">
               <Die face={last.face} /> が <strong>{last.count}</strong>個以上
             </span>
-            {last.auto && <em className="muted">（時間切れ）</em>}
+            {last.auto && <em className="muted">（おまかせ）</em>}
           </div>
         ) : (
           <div className="bid-big muted">まだ宣言はありません</div>
@@ -81,11 +77,6 @@ export function LiarsDiceUI({ room, table, view, me, players, act, serverNow }: 
       {table.phase === "bidding" && (
         <section className="turn-banner">
           <strong>{players.get(table.currentPlayerId)?.name}</strong> の番
-          <Countdown
-            deadline={table.deadline}
-            total={Number(room.config.turnSeconds)}
-            serverNow={serverNow}
-          />
         </section>
       )}
 

@@ -6,7 +6,7 @@ import type {
   WolfRound,
 } from "~/games/wolf-and-pigs";
 import { HOUSES } from "~/games/wolf-and-pigs";
-import { Countdown, HoldReveal, PlayerChip, type PlayerMap } from "../ui";
+import { HoldReveal, PlayerChip, type PlayerMap } from "../ui";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<WolfAndPigsTableView, WolfAndPigsPlayerView, WolfAndPigsAction>;
@@ -64,7 +64,7 @@ function RoundReveal({
   );
 }
 
-export function WolfAndPigsUI({ room, table, view, me, players, act, serverNow }: Props) {
+export function WolfAndPigsUI({ room, table, view, me, players, act }: Props) {
   const latest = table.history.at(-1);
   // 選択中はこれまでの全ラウンド、公開中は最新以外を「これまで」に出す
   const previous = table.phase === "picking" ? table.history : table.history.slice(0, -1);
@@ -105,11 +105,6 @@ export function WolfAndPigsUI({ room, table, view, me, players, act, serverNow }
               <p className="muted">
                 選んだ人 {table.pickedCount}/{table.totalPickers}
               </p>
-              <Countdown
-                deadline={table.deadline}
-                total={Number(room.config.pickSeconds)}
-                serverNow={serverNow}
-              />
             </>
           )}
         </section>

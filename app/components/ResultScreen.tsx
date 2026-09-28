@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { MAX_NAME_LENGTH } from "~/protocol";
 import type { ClientMessage, GameView, RoomView } from "~/protocol";
+import { GamePicker } from "./GamePicker";
 import { GameScreen } from "./GameScreen";
+import { GAMES } from "~/games/registry";
 import { Avatar, vibrate, type PlayerMap } from "./ui";
 
 const ROULETTE_MS = 2600;
@@ -121,26 +123,41 @@ function ResultBody({ room, game, players, deviceId, isHost, send, serverNow }: 
 
       <div className="result-actions">
         {isHost ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-xl btn-green"
-              onClick={() => send({ type: "room.start" })}
-            >
-              もう1回！
-            </button>
-            <button
-              type="button"
-              className="btn btn-lg"
-              onClick={() => send({ type: "room.lobby" })}
-            >
-              メンバー・設定を変える
-            </button>
-          </>
+          <button
+            type="button"
+            className="btn btn-xl btn-green"
+            onClick={() => send({ type: "room.start" })}
+          >
+            もう1回！（{GAMES[room.gameId].name}）
+          </button>
         ) : (
-          <p className="panel waiting">ホストが次のラウンドを始めるのを待っています…</p>
+          <p className="panel waiting">ホストが次のゲームを選んでいます…</p>
         )}
       </div>
+
+      <section className="picker-section">
+        <h3 className="section-title">別のゲームで遊ぶ</h3>
+        {isHost && <p className="muted small">選ぶとルール説明の画面に移ります</p>}
+        <GamePicker
+          current={room.gameId}
+          playerCount={room.players.length}
+          canPick={isHost}
+          onPick={(gameId) => send({ type: "room.game", gameId })}
+          layout="grid"
+          strictCount
+          excludeCurrent
+        />
+      </section>
+
+      {isHost && (
+        <button
+          type="button"
+          className="btn btn-lg btn-block result-lobby-btn"
+          onClick={() => send({ type: "room.lobby" })}
+        >
+          メンバー・席順を変える
+        </button>
+      )}
 
       {!room.players.some((p) => p.deviceId === deviceId) && <JoinNextRound send={send} />}
 

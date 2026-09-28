@@ -1,4 +1,4 @@
-import { shuffle, tieBreak } from "./random";
+import { pick, shuffle, tieBreak } from "./random";
 import { fail, type Ctx, type GameDefinition, type PlayerId, type Step } from "./types";
 
 export type Suit = "S" | "H" | "D" | "C";
@@ -16,7 +16,6 @@ export type Question =
 export type Guess = "red" | "black" | "high" | "low" | "in" | "out" | Suit;
 
 export interface HighLowConfig {
-  guessSeconds: 5 | 10 | 15;
   stages: "rideTheBus" | "highLowOnly";
 }
 
@@ -32,7 +31,6 @@ export interface Reveal {
 export interface HighLowState {
   phase: "guessing" | "revealing" | "done";
   stages: HighLowConfig["stages"];
-  guessSeconds: number;
   stage: number;
   deck: PlayingCard[];
   table: PlayingCard[];
@@ -40,7 +38,6 @@ export interface HighLowState {
   exited: { playerId: PlayerId; stage: number }[];
   question: Question;
   guesses: Record<PlayerId, Guess>;
-  deadline: number | null;
   lastReveal: Reveal | null;
 }
 
@@ -54,7 +51,6 @@ export interface HighLowTableView {
   remaining: PlayerId[];
   exited: HighLowState["exited"];
   guessedPlayerIds: PlayerId[];
-  deadline: number | null;
   lastReveal: Reveal | null;
 }
 
@@ -65,7 +61,7 @@ export interface HighLowPlayerView {
 }
 
 const SUITS: Suit[] = ["S", "H", "D", "C"];
-const REVEAL_MS = 2200;
+const REVEAL_MS = 3500;
 const SUIT_ONLY_FROM_STAGE = 15;
 const MAX_STAGE = 30;
 
@@ -126,12 +122,11 @@ function questionFor(s: HighLowState): Question {
   }
 }
 
-function startGuessing(s: HighLowState, now: number): Step<HighLowState> {
+function startGuessing(s: HighLowState): Step<HighLowState> {
   s.phase = "guessing";
   s.guesses = {};
   s.question = questionFor(s);
-  s.deadline = now + s.guessSeconds * 1000;
-  return { state: s, timer: { id: "guess", at: s.deadline } };
+  return { state: s, timer: null };
 }
 
 function drawCard(s: HighLowState, ctx: Ctx): PlayingCard {
@@ -154,7 +149,6 @@ function close(state: HighLowState, ctx: Ctx): Step<HighLowState> {
   s.exited.push(...exited.map((playerId) => ({ playerId, stage: s.stage })));
   s.lastReveal = { stage: s.stage, card, guesses: s.guesses, correct, wrong, exited };
   s.phase = "revealing";
-  s.deadline = null;
   return {
     state: s,
     timer: { id: "reveal", at: ctx.now + REVEAL_MS },
@@ -174,17 +168,8 @@ export const highLow: GameDefinition<
   tagline: "次のカードを全員で予想。当てた人から抜け、最後の1人が負け",
   minPlayers: 3,
   maxPlayers: 10,
-  defaultConfig: { guessSeconds: 10, stages: "rideTheBus" },
+  defaultConfig: { stages: "rideTheBus" },
   configFields: [
-    {
-      key: "guessSeconds",
-      label: "予想時間",
-      options: [
-        { value: 5, label: "5秒" },
-        { value: 10, label: "10秒" },
-        { value: 15, label: "15秒" },
-      ],
-    },
     {
       key: "stages",
       label: "ステージ構成",
@@ -200,7 +185,6 @@ export const highLow: GameDefinition<
     const s: HighLowState = {
       phase: "guessing",
       stages: config.stages,
-      guessSeconds: config.guessSeconds,
       stage: 1,
       deck,
       table: [],
@@ -208,12 +192,11 @@ export const highLow: GameDefinition<
       exited: [],
       question: { kind: "color" },
       guesses: {},
-      deadline: null,
       lastReveal: null,
     };
     // 上か下かのみの場合は基準となる1枚を最初にめくっておく
     if (config.stages === "highLowOnly") s.table.push(s.deck.pop()!);
-    return startGuessing(s, ctx.now);
+    return startGuessing(s);
   },
 
   applyAction(state, playerId, action, ctx) {
@@ -229,7 +212,6 @@ export const highLow: GameDefinition<
   },
 
   onTimer(state, timerId, ctx) {
-    if (timerId === "guess" && state.phase === "guessing") return close(state, ctx);
     if (timerId === "reveal" && state.phase === "revealing") {
       const s = structuredClone(state);
       if (s.remaining.length === 1) {
@@ -250,9 +232,17 @@ export const highLow: GameDefinition<
         };
       }
       s.stage++;
-      return startGuessing(s, ctx.now);
+      return startGuessing(s);
     }
     return { state };
+  },
+
+  autoAct(state, ctx) {
+    if (state.phase !== "guessing") return { state };
+    const s = structuredClone(state);
+    const options = optionsFor(s.question);
+    for (const p of s.remaining) s.guesses[p] ??= pick(ctx.random, options);
+    return close(s, ctx);
   },
 
   tableView(s) {
@@ -264,7 +254,6 @@ export const highLow: GameDefinition<
       remaining: s.remaining,
       exited: s.exited,
       guessedPlayerIds: Object.keys(s.guesses),
-      deadline: s.deadline,
       lastReveal: s.lastReveal,
     };
   },

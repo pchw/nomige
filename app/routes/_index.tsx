@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Form, redirect, useNavigate, useNavigation } from "react-router";
-import { GAME_META } from "~/games/meta";
-import { GAME_ORDER, GAMES, isGameId } from "~/games/registry";
+import { accentStyle, GameCardBody } from "~/components/GamePicker";
+import { GAME_ORDER, isGameId } from "~/games/registry";
 import { createRoom } from "~/server/rooms.server";
 import type { Route } from "./+types/_index";
 
@@ -44,30 +44,10 @@ export default function Home() {
         <h2 className="section-title">ゲームを選んでルームを作る</h2>
         <div className="game-grid">
           {GAME_ORDER.map((id) => {
-            const game = GAMES[id];
-            const info = GAME_META[id];
             return (
-              <Form
-                method="post"
-                key={id}
-                className="game-card"
-                style={{ "--accent": info.color } as React.CSSProperties}
-              >
+              <Form method="post" key={id} className="game-card" style={accentStyle(id)}>
                 <input type="hidden" name="gameId" value={id} />
-                <div className="game-card-head">
-                  <span className="game-emoji" aria-hidden>
-                    {info.emoji}
-                  </span>
-                  <h3>{game.name}</h3>
-                </div>
-                <p className="game-tagline">{game.tagline}</p>
-                <ul className="tags">
-                  <li>
-                    {game.minPlayers}〜{game.maxPlayers}人
-                  </li>
-                  <li>{info.duration}</li>
-                  <li>{info.style}</li>
-                </ul>
+                <GameCardBody id={id} />
                 <button className="btn btn-block" type="submit" disabled={Boolean(creating)}>
                   {creating === id ? "作成中…" : "このゲームで遊ぶ →"}
                 </button>

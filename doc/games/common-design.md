@@ -99,7 +99,7 @@ interface Player {
 
 JSON メッセージ。すべて `type` フィールドを持つ。
 
-> 実装上の正は `app/protocol.ts`。以下は設計時の一覧で、実装ではメッセージ名を一部簡略化している（例：`room.updateConfig` → `room.config`、`room.rematch` は `room.start` に統合、ロビーでのゲーム変更 `room.game` を追加）。
+> 実装上の正は `app/protocol.ts`。以下は設計時の一覧で、実装ではメッセージ名を一部簡略化している（例：`room.updateConfig` → `room.config`、`room.rematch` は `room.start` に統合、ゲームの切り替え `room.game` と「おまかせで進める」`game.auto` を追加）。
 
 ### クライアント → サーバー
 
@@ -116,8 +116,10 @@ JSON メッセージ。すべて `type` フィールドを持つ。
 | `room.rematch` | `{}` | もう1回（ホストのみ、result のみ） |
 | `room.backToLobby` | `{}` | ロビーに戻る（ホストのみ） |
 | `game.action` | `{ playerId, action, seq }` | ゲーム操作。`playerId` はこの端末配下である必要がある |
+| `game.auto` | `{}` | おまかせで進める（最後の操作から30秒以上経過時のみ有効。どの端末からでも可） |
+| `room.game` | `{ gameId }` | ゲームの切り替え（ホストのみ、lobby/result のみ。ロビーへ移る） |
 | `result.pass` | `{ playerId }` | 敗者がパス権を使う |
-| `time.ping` | `{ t0 }` | 時刻同期（カウントダウン表示の補正用） |
+| `time.ping` | `{ t0 }` | 時刻同期（「おまかせで進める」を出すタイミングの判定用） |
 
 ### サーバー → クライアント
 
@@ -151,8 +153,8 @@ interface GameDefinition<Config, State, Action, TableView, PlayerView> {
 
   setup(players: PlayerInfo[], config: Config, ctx: Ctx): Step<State>;
   applyAction(state: State, playerId: PlayerId, action: Action, ctx: Ctx): Step<State> | GameError;
-  onTimer(state: State, timerId: string, ctx: Ctx): Step<State>;
-  onPlayerDisconnect?(state: State, playerId: PlayerId, ctx: Ctx): Step<State>;
+  onTimer(state: State, timerId: string, ctx: Ctx): Step<State>;   // 演出用タイマーのみ
+  autoAct(state: State, ctx: Ctx): Step<State>;                    // おまかせで進める
 
   tableView(state: State): TableView;
   playerView(state: State, playerId: PlayerId): PlayerView;
@@ -193,16 +195,30 @@ onMessage(game.action)
   → result があれば drinks を加算し、room.phase = 'result'
 ```
 
-### タイマー
+### 時間で急かさない
 
-DO の Alarm は1つしか設定できないため、DO 内で `{ id, at }[]` のタイマーキューを持ち、最も早い時刻を `setAlarm` する。
-Alarm 発火時に期限切れのものを順に `def.onTimer` に渡す。
-クライアントにはビューの中で `deadline`（サーバー時刻）を渡し、カウントダウン表示はクライアントで行う（時刻オフセットは `time.ping` で補正）。
+酔った状態では選択に時間がかかるため、**プレイヤーの選択を制限時間で打ち切ることはしない**。
+全員（手番制なら手番の人）が選ぶまで待つ。
+
+- タイマー（DO Alarm）は **演出用** にだけ使う（ハイロー・被ったらアウト・狼と子豚の結果公開 → 次へ。3.5〜5秒）。
+  各ゲームのタイマーは同時に1つだけなので、`game.timer = { id, at } | null` を保存して `setAlarm` する。
+- 待っている人は、画面上部の待ちバーに「〇〇さん待ち」と名前で表示し、周りが声をかけられるようにする。
+  - 狼と子豚は、名前を出すと延長戦で狼が推測できるため「あと〇人の選択待ち」と人数だけにする。
+- 自分の端末のプレイヤーが新しく待ちになったら、振動で知らせる。
+
+### おまかせで進める
+
+寝落ちや通信切れで止まったときの逃げ道。
+
+- ルームは `game.lastProgressAt`（最後に誰かが操作した、またはゲームが進んだ時刻）を持つ。
+- `now - lastProgressAt >= 30秒` のとき、全端末の待ちバーに「おまかせで進める」ボタンを出す。
+  - ホスト限定にしない（ホスト自身が寝落ちすることがあるため）。
+  - 誤タップ防止のため2段階：1回目で「本当に？もう一度押すと進みます」に変わり、5秒以内にもう一度押すと `game.auto` を送る。
+- サーバーは30秒経過を再確認してから `def.autoAct(state, ctx)` を呼ぶ。`autoAct` は待っている人全員の分をアプリが代わりに選ぶ（内容は各ゲームのドキュメント参照）。
 
 ### 切断時の扱い
 
-- 切断してもプレイヤーは即座には除外しない。手番タイムアウトなど、各ゲームのタイマーで自然に進行させる。
-- `onPlayerDisconnect` はオプション。必要なゲーム（投票系で「全員の投票待ち」になるもの）では、ホストが「〇〇さんをスキップ」できるボタンを共通で提供する。
+- 切断してもプレイヤーは即座には除外しない。止まった場合は「おまかせで進める」で進める。
 
 ## 6. タイブレーク（ルーレット）
 
@@ -216,18 +232,20 @@ Alarm 発火時に期限切れのものを順に `def.onTimer` に渡す。
 
 - 敗者の名前を大きく表示（「〇〇さん、飲んで！🍺」）、理由、ゲーム固有の詳細。
 - 敗者端末では「パス権を使う」ボタン（残りがあれば）。
-- ルーム内の累計杯数ランキング。
-- ホストに「もう1回」「ロビーへ（メンバー・設定変更）」ボタン。
+- ルーム内の累計杯数ランキング（ゲームをまたいで累計）。
+- ホスト向けの次の一手：
+  - 「もう1回！（ゲーム名）」：同じゲーム・同じ設定ですぐ次のラウンド。
+  - 「別のゲームで遊ぶ」：今のゲーム以外のカードを一覧表示。押すとそのゲームのルール説明（ロビー）に移り、ホストが「ゲーム開始！」で始める。今の人数で遊べないゲームは「3〜8人で遊べます（今は9人）」と理由付きで押せなくする。
+  - 「メンバー・席順を変える」：同じゲームのままロビーへ。
+- ホスト以外の端末はカードを見られるが押せず、「ホストが次のゲームを選んでいます」と表示する。
+- ロビーでも上部にゲームカードを横スクロールで並べ、ゲームを切り替えられる（ロビーでは人数が後から増えるので、人数が合わなくても選べる。開始時に人数をチェック）。
 
 ## 8. 永続化
 
-- DO storage のキー
-  - `room` : `{ code, gameId, config, phase, hostDeviceId, createdAt, penaltyText }`
-  - `devices` : `Record<DeviceId, Device>`
-  - `players` : `Record<PlayerId, Player>` と表示順 `playerOrder: PlayerId[]`
-  - `game` : `{ version, state, timers, rngSeed }`
-  - `history` : 直近20ラウンドの `RoundResult`（結果表示・累計用）
-- 状態は小さいため、変更のたびに該当キーを丸ごと `put` する。
+- 状態は小さいため、ルームの全状態（`RoomData`、`app/server/room-core.ts`）を1キー `room` にまとめて、変更のたびに丸ごと `put` する。
+  - `configs`：**ゲームごとの設定**（`Record<GameId, Config>`）。ゲームを切り替えて戻ってきても前の設定が残る。
+  - `game`：`{ version, state, timer, lastProgressAt }`。
+  - そのほか端末・プレイヤー・席順・累計杯数・直前の結果・乱数の状態。
 - WebSocket には `serializeAttachment({ deviceId })` で端末IDを紐付け、Hibernation からの復帰時に復元する。
 
 ## 9. キャラクターアセット

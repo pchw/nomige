@@ -10,7 +10,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 人数 | 3〜10人 |
-| 時間 | 1分前後（1回 20 秒程度。延長戦があれば数回） |
+| 時間 | 1分前後（延長戦があれば数回） |
 | 進行 | 全員同時 |
 | 共有端末 | ○（役の確認と選択をホットシートで順番に行う） |
 | 各自スマホ | ◎ |
@@ -19,7 +19,7 @@
 ## ルール
 
 1. ランダムに1人が **狼** になる。残りは **子豚**。自分の役は自分だけが知っている。
-2. 全員が同時に秘密で選ぶ（制限時間 20 秒。この間は自由に話してよい）。
+2. 全員が同時に秘密で選ぶ（制限時間なし。選んでいる間は自由に話してよい。全員が選んだら公開）。
    - 子豚：隠れる家を1つ選ぶ（わら / 木 / レンガ）。
    - 狼：襲う家を1つ選ぶ（わら / 木 / レンガ）。
    - 狼の選択画面も子豚と同じ見た目にし、選んでいる様子から役がバレないようにする。
@@ -35,15 +35,17 @@
 - 公開時は「狼は **木の家** を襲った！」と襲った家だけを表示し、狼が誰かは明かさない。延長戦に入っても狼は隠れたまま。
 - ラウンド終了時（負けが決まった時点）に狼の正体を公開する。
 
-### 時間切れ
+### 待ち時間とおまかせ
 
-- 時間内に選ばなかった子豚・狼は、ランダムな家を自動で選ぶ。
+- 役の確認・家の選択に制限時間はない。全員が確認・選択するまで待つ。
+- 待っている人数を画面上部に「あと〇人の選択待ち」と表示する（名前は出さない。延長戦で狼がバレるため）。
+- 誰も操作しない状態が30秒続くと、全端末に「おまかせで進める」ボタンが出る（2回押しで実行。詳細は [common-design.md](./common-design.md#おまかせで進める)）。
+- おまかせ：役の確認待ちは確認済みとして選択へ進む。家の選択待ちは、未選択の子豚・狼に **ランダムな家** を割り当てて公開する。誰の分をおまかせにしたかは表示しない。
 
 ### 設定
 
 | 設定 | 選択肢 | デフォルト |
 | --- | --- | --- |
-| 選択時間 | 10 / 20 / 30 秒 | 20秒 |
 | 延長戦で狼が空振りしたとき | 狼の負け / やり直し | 狼の負け |
 
 ## 画面設計
@@ -57,10 +59,10 @@
 
 ```
 ┌──────────────────────────┐
-│ 🐺 狼はこの中にいる…   ⏱ 14 │
-│                          │
+│ あと 2人 の選択待ち         │  ← 待ち表示（人数のみ）
+│ 🐺 狼はこの中にいる…         │
 │  ┌──────┐┌──────┐┌──────┐   │
-│  │ わら ││  木  ││レンガ│   │  ← 家のイラスト。タップで選択、締め切りまで変更可
+│  │ わら ││  木  ││レンガ│   │  ← 家のイラスト。タップで選択、全員が選ぶまで変更可
 │  └──────┘└──────┘└──────┘   │
 │                          │
 │ あなたの役：長押しで確認      │
@@ -86,7 +88,6 @@
 
 ```ts
 interface WolfAndPigsConfig {
-  pickSeconds: 10 | 20 | 30;
   runoffMiss: 'wolfLoses' | 'retry';
 }
 ```
@@ -103,7 +104,7 @@ interface WolfAndPigsState {
   pigs: PlayerId[];                       // 今回の対象の子豚（延長戦では絞られる）
   roleChecked: PlayerId[];
   picks: Record<PlayerId, House>;         // 子豚の選択と狼の選択（狼の分も同じ辞書に入れる）
-  deadline: number | null;
+  idled: PlayerId[];                      // 延長戦で対象外の人が「見ています」を押したか
   history: {
     round: number;
     pigPicks: Record<PlayerId, House>;
@@ -118,18 +119,19 @@ interface WolfAndPigsState {
 ```ts
 type WolfAndPigsAction =
   | { type: 'checkRole' }
-  | { type: 'pick'; house: House };
+  | { type: 'pick'; house: House }
+  | { type: 'idle' };                     // 延長戦の対象外の人が「見ています」を押す
 ```
 
 ### 処理
 
-- `setup`：`ctx.random` で狼を決める。`pigs` = 狼以外の全員、`phase='roleCheck'`、`roleCheck` タイマー（30秒。未確認でも進む）。
-- `applyAction(checkRole)`：全員確認したら `phase='picking'`、`pick` タイマー。
-- `applyAction(pick)`：検証（`phase==='picking'`、本人が `pigs` か `wolf`）。上書き可。`pigs` と `wolf` 全員が選んだら締め切り。
-- `onTimer(pick)`：未選択者にランダムな家を割り当てて締め切り。
+- `setup`：`ctx.random` で狼を決める。`pigs` = 狼以外の全員、`phase='roleCheck'`。
+- `applyAction(checkRole)`：全員確認したら `phase='picking'`。
+- `applyAction(pick)`：検証（`phase==='picking'`、本人が `pigs` か `wolf`）。全員が選ぶまでは上書き可。`pigs` と `wolf` 全員が選んだら締め切り。
+- `autoAct`：`roleCheck` なら確認済みとして `picking` へ。`picking` なら未選択者にランダムな家を割り当てて締め切り。
 - 締め切り処理
   1. `attacked = picks[wolf]`、`caught` = `attacked` を選んだ `pigs`。
-  2. `history` に追加し、イベント `wolf.reveal`（子豚の配置と襲った家。狼が誰かは含めない）、`reveal` タイマー（演出時間 4 秒）。
+  2. `history` に追加し、イベント `wolf.reveal`（子豚の配置と襲った家。狼が誰かは含めない）、`reveal` タイマー（演出時間 5 秒。プレイヤーの選択ではないので自動で進める）。
 - `onTimer(reveal)`
   - `caught.length === 1`：`done`、`result = { losers: caught, reason: '${家}の家で狼に食べられた' }`。
   - `caught.length >= 2`：`round++`、`pigs = caught`、`picks` をクリアして `picking` へ。
@@ -137,7 +139,7 @@ type WolfAndPigsAction =
     - 本戦、または `runoffMiss === 'wolfLoses'`：`done`、`result = { losers: [wolf], reason: '狼なのに空き家を襲った' }`。
     - 延長戦かつ `retry`：`round++`、`pigs` はそのままで `picking` へ。
   - 延長戦が 10 回を超えたら `pigs` からルーレット（`retry` 設定時の無限ループ防止）。
-- `pendingPlayers`：`roleCheck` なら未確認の人、`picking` なら `pigs` と `wolf` のうち未選択の人。
+- `pendingPlayers`：`roleCheck` なら未確認の人。`picking` なら、未選択かつ「見ています」を押していない全員（延長戦の対象外の人も含め、狼だけが待ちに残る状況を作らない）。
 
 ### View
 
@@ -148,15 +150,17 @@ interface WolfAndPigsTableView {
   pigs: PlayerId[];                       // 今回の対象の子豚（狼は含まない。UIでは「子豚〇匹 + 狼」と表示）
   pickedCount: number;                    // 選択済み人数（誰が選んだかは出さない。狼の選択有無で正体が推測できるため）
   totalPickers: number;
-  deadline: number | null;
+  checkedCount: number;                   // 役を確認した人数
   history: WolfAndPigsState['history'];
   wolf?: PlayerId;                        // done 時のみ
 }
 
 interface WolfAndPigsPlayerView {
-  role: 'wolf' | 'pig' | 'spectator';     // 延長戦で対象外になった子豚は spectator
+  role: 'wolf' | 'pig';
+  active: boolean;                        // 今回の選択に参加するか（延長戦の対象外の子豚は false）
   myPick: House | null;
   roleChecked: boolean;
+  idled: boolean;
 }
 ```
 

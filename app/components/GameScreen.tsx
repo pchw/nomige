@@ -8,6 +8,7 @@ import { LiarsDiceUI } from "./games/LiarsDiceUI";
 import type { GameUIProps } from "./games/types";
 import { WolfAndPigsUI } from "./games/WolfAndPigsUI";
 import { Avatar, type PlayerMap } from "./ui";
+import { WaitBar } from "./WaitBar";
 
 const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "hundred-one": HundredOneUI,
@@ -35,15 +36,41 @@ export function GameScreen({ room, game, players, send, serverNow, boardOnly }: 
 
   const common = { room, players, table: game.table, pending: game.pending, serverNow };
 
-  if (boardOnly || localIds.length === 0) {
+  if (boardOnly) {
     return <UI {...common} me={null} view={null} act={() => {}} />;
+  }
+  const waitBar = (
+    <WaitBar game={game} players={players} localIds={localIds} send={send} serverNow={serverNow} />
+  );
+  if (localIds.length === 0) {
+    return (
+      <>
+        {waitBar}
+        <UI {...common} me={null} view={null} act={() => {}} />
+      </>
+    );
   }
   if (localIds.length === 1) {
     const me = localIds[0];
-    return <UI {...common} me={me} view={game.players[me]} act={act(me)} />;
+    return (
+      <>
+        {waitBar}
+        <UI {...common} me={me} view={game.players[me]} act={act(me)} />
+      </>
+    );
   }
   return (
-    <Hotseat game={game} localIds={localIds} players={players} UI={UI} common={common} act={act} />
+    <>
+      {waitBar}
+      <Hotseat
+        game={game}
+        localIds={localIds}
+        players={players}
+        UI={UI}
+        common={common}
+        act={act}
+      />
+    </>
   );
 }
 

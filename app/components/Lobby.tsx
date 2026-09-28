@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { GAME_META } from "~/games/meta";
-import { GAME_ORDER, GAMES } from "~/games/registry";
+import { GAMES } from "~/games/registry";
 import type { GameId } from "~/games/types";
 import { MAX_NAME_LENGTH, MAX_PLAYERS, type ClientMessage, type RoomView } from "~/protocol";
+import { GamePicker } from "./GamePicker";
 import { Avatar } from "./ui";
 
 interface Props {
@@ -62,6 +63,20 @@ export function Lobby({ room, deviceId, isHost, send }: Props) {
 
   return (
     <div className="lobby">
+      <section className="picker-section">
+        <h3 className="section-title">
+          ゲームを選ぶ{!isHost && <small className="muted">（ホストが選べます）</small>}
+        </h3>
+        <GamePicker
+          current={room.gameId}
+          playerCount={count}
+          canPick={isHost}
+          onPick={(gameId) => send({ type: "room.game", gameId })}
+          layout="scroll"
+          strictCount={false}
+        />
+      </section>
+
       <GameRules gameId={room.gameId} />
 
       <section className="panel">
@@ -146,21 +161,6 @@ export function Lobby({ room, deviceId, isHost, send }: Props) {
           設定{!isHost && <small className="muted">（ホストが変更できます）</small>}
         </h3>
         <div className="config-grid">
-          <label className="field">
-            <span>ゲーム</span>
-            <select
-              className="input"
-              value={room.gameId}
-              disabled={!isHost}
-              onChange={(e) => send({ type: "room.game", gameId: e.target.value as GameId })}
-            >
-              {GAME_ORDER.map((id) => (
-                <option key={id} value={id}>
-                  {GAMES[id].name}
-                </option>
-              ))}
-            </select>
-          </label>
           {game.configFields.map((field) => (
             <label key={field.key} className="field">
               <span>{field.label}</span>

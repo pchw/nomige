@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { LiarsDiceState } from "~/games/liars-dice";
+import { AUTO_ACT_AFTER_MS } from "~/protocol";
 import {
+  configOf,
   createRoomData,
   gameView,
   handleMessage,
@@ -30,16 +32,16 @@ describe("room-core", () => {
     const room = lobby();
     expect(handleMessage(room, "tablet", { type: "room.start" }, 0).error?.code).toBe("forbidden");
     expect(
-      handleMessage(room, "tablet", { type: "room.config", config: { turnSeconds: 30 } }, 0).error,
+      handleMessage(room, "tablet", { type: "room.config", config: { onesWild: false } }, 0).error,
     ).toBeDefined();
   });
 
   it("設定は選択肢にある値だけ受け付ける", () => {
     const room = lobby();
-    handleMessage(room, "host", { type: "room.config", config: { turnSeconds: 999 } }, 0);
-    expect(room.config.turnSeconds).toBe(20);
-    handleMessage(room, "host", { type: "room.config", config: { turnSeconds: 30 } }, 0);
-    expect(room.config.turnSeconds).toBe(30);
+    handleMessage(room, "host", { type: "room.config", config: { dicePerPlayer: 99 } }, 0);
+    expect(configOf(room).dicePerPlayer).toBe("auto");
+    handleMessage(room, "host", { type: "room.config", config: { dicePerPlayer: 3 } }, 0);
+    expect(configOf(room).dicePerPlayer).toBe(3);
   });
 
   it("人数が足りなければ開始できない", () => {
@@ -99,14 +101,51 @@ describe("room-core", () => {
     expect(room.players.p1.passesLeft).toBe(0);
   });
 
-  it("タイマーは期限が来たときだけ処理する", () => {
+  it("時間では進まず、30秒操作がなければおまかせで進められる", () => {
     const room = lobby();
     handleMessage(room, "host", { type: "room.start" }, 1000);
-    const at = room.game!.timer!.at;
-    handleTimer(room, at - 1);
+    expect(room.game!.timer).toBeNull();
+    handleTimer(room, 999_999);
     expect((room.game!.state as LiarsDiceState).bids).toHaveLength(0);
-    handleTimer(room, at);
+
+    const early = handleMessage(
+      room,
+      "tablet",
+      { type: "game.auto" },
+      1000 + AUTO_ACT_AFTER_MS - 1,
+    );
+    expect(early.error?.code).toBe("too_early");
+    // ホスト以外の端末からも押せる
+    handleMessage(room, "tablet", { type: "game.auto" }, 1000 + AUTO_ACT_AFTER_MS);
     expect((room.game!.state as LiarsDiceState).bids).toHaveLength(1);
+    // 進んだ直後はまた30秒待つ
+    const again = handleMessage(
+      room,
+      "tablet",
+      { type: "game.auto" },
+      1000 + AUTO_ACT_AFTER_MS + 1,
+    );
+    expect(again.error?.code).toBe("too_early");
+  });
+
+  it("ゲームを切り替えても、戻るとそのゲームの設定が残っている", () => {
+    const room = lobby();
+    handleMessage(room, "host", { type: "room.config", config: { onesWild: false } }, 0);
+    handleMessage(room, "host", { type: "room.game", gameId: "high-low" }, 0);
+    expect(configOf(room)).toEqual({ stages: "rideTheBus" });
+    handleMessage(room, "host", { type: "room.game", gameId: "liars-dice" }, 0);
+    expect(configOf(room).onesWild).toBe(false);
+  });
+
+  it("結果画面から別のゲームを選ぶとロビーに移る", () => {
+    const room = lobby();
+    room.phase = "result";
+    handleMessage(room, "host", { type: "room.game", gameId: "wolf-and-pigs" }, 0);
+    expect(room.phase).toBe("lobby");
+    expect(room.gameId).toBe("wolf-and-pigs");
+    expect(
+      handleMessage(room, "tablet", { type: "room.game", gameId: "high-low" }, 0).error,
+    ).toBeDefined();
   });
 
   it("ゲーム中は参加できず、結果画面では参加できる", () => {

@@ -44,16 +44,17 @@
 - **残っている全員が外した**：誰も抜けずに次のステージへ。
 - つまり、1人以上当てて1人以上外したときだけ、当てた人が抜ける。
 
-### 制限時間
+### 待ち時間とおまかせ
 
-- 各ステージ 10 秒。全員が予想したらすぐにめくる。
-- 時間内に予想しなかった人は「外れ」扱い。
+- 予想に制限時間はない。残っている全員が予想したらすぐにめくる。
+- 待っている人は画面上部に「〇〇さん待ち」と表示する。
+- 誰も操作しない状態が30秒続くと、全端末に「おまかせで進める」ボタンが出る（2回押しで実行。詳細は [common-design.md](./common-design.md#おまかせで進める)）。
+- おまかせ：未予想の人の分を **ランダムに予想** してめくる（他人が押す操作なので、外れ扱いにはしない）。
 
 ### 設定
 
 | 設定 | 選択肢 | デフォルト |
 | --- | --- | --- |
-| 予想時間 | 5 / 10 / 15 秒 | 10秒 |
 | ステージ構成 | ライド・ザ・バス（4段階→上か下か）/ 上か下かのみ | ライド・ザ・バス |
 
 ## 画面設計
@@ -67,7 +68,7 @@
 │                          │
 │  [ 8♥ ]  →  [ ? ]         │  ← 場のカード
 │                          │
-│   8♥ より上か下か？  ⏱ 6    │
+│   8♥ より上か下か？         │
 │   [  上 ▲  ]  [  下 ▼  ]   │
 │   予想済み 3/4              │
 └──────────────────────────┘
@@ -87,7 +88,6 @@
 
 ```ts
 interface HighLowConfig {
-  guessSeconds: 5 | 10 | 15;
   stages: 'rideTheBus' | 'highLowOnly';
 }
 ```
@@ -115,7 +115,6 @@ interface HighLowState {
   exited: { playerId: PlayerId; stage: number }[];
   question: Question;
   guesses: Record<PlayerId, Guess>;
-  deadline: number | null;
   lastReveal: { card: PlayingCard; correct: PlayerId[]; wrong: PlayerId[]; exited: PlayerId[] } | null;
 }
 ```
@@ -128,13 +127,13 @@ type HighLowAction = { type: 'guess'; guess: Guess };
 
 ### 処理
 
-- `setup`：52枚をシャッフル、`remaining` = 全員、ステージ1の質問、`guess` タイマー。
-- `applyAction(guess)`：検証（`phase==='guessing'`、`remaining` に含まれる、質問に合った選択肢）。締め切りまでは上書き可。`remaining` 全員が予想したら締め切り。
-- `onTimer(guess)`：締め切り（未予想は外れ）。
+- `setup`：52枚をシャッフル、`remaining` = 全員、ステージ1の質問。
+- `applyAction(guess)`：検証（`phase==='guessing'`、`remaining` に含まれる、質問に合った選択肢）。全員が予想するまでは上書き可。`remaining` 全員が予想したら締め切り。
+- `autoAct`：未予想の人にランダムな予想を割り当てて締め切り。
 - 締め切り処理
   1. デッキから1枚めくり `table` に追加。正誤判定。
   2. `correct` と `wrong` の両方が1人以上なら `correct` を `remaining` から除き `exited` へ。
-  3. `phase='revealing'`、イベント `highlow.reveal`、`reveal` タイマー（2秒、演出用）。
+  3. `phase='revealing'`、イベント `highlow.reveal`、`reveal` タイマー（3.5秒、演出用。プレイヤーの選択ではないので自動で進める）。
 - `onTimer(reveal)`
   - `remaining.length === 1` なら `phase='done'`、`result = { losers: remaining, reason: 'ステージ${stage}までバスを降りられなかった' }`。
   - そうでなければ次のステージの質問を作り `phase='guessing'`。
@@ -155,7 +154,6 @@ interface HighLowTableView {
   remaining: PlayerId[];
   exited: HighLowState['exited'];
   guessedPlayerIds: PlayerId[];
-  deadline: number | null;
   lastReveal: HighLowState['lastReveal'] & { guesses: Record<PlayerId, Guess> } | null;  // 締め切り後に予想を公開
 }
 

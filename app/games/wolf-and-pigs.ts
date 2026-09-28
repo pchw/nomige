@@ -5,7 +5,6 @@ export type House = "straw" | "wood" | "brick";
 export const HOUSES: House[] = ["straw", "wood", "brick"];
 
 export interface WolfAndPigsConfig {
-  pickSeconds: 10 | 20 | 30;
   runoffMiss: "wolfLoses" | "retry";
 }
 
@@ -18,7 +17,6 @@ export interface WolfRound {
 
 export interface WolfAndPigsState {
   phase: "roleCheck" | "picking" | "revealing" | "done";
-  pickSeconds: number;
   runoffMiss: WolfAndPigsConfig["runoffMiss"];
   players: PlayerId[];
   wolf: PlayerId;
@@ -28,7 +26,6 @@ export interface WolfAndPigsState {
   picks: Record<PlayerId, House>;
   /** 延長戦で対象外の人が「見ています」を押したか（共有端末で狼の手番が目立たないようにするため） */
   idled: PlayerId[];
-  deadline: number | null;
   history: WolfRound[];
 }
 
@@ -44,7 +41,6 @@ export interface WolfAndPigsTableView {
   checkedCount: number;
   pickedCount: number;
   totalPickers: number;
-  deadline: number | null;
   history: WolfRound[];
   wolf?: PlayerId;
 }
@@ -58,20 +54,18 @@ export interface WolfAndPigsPlayerView {
   idled: boolean;
 }
 
-const ROLE_CHECK_MS = 30_000;
-const REVEAL_MS = 4500;
+const REVEAL_MS = 5000;
 const MAX_ROUND = 10;
 
 function pickers(s: WolfAndPigsState): PlayerId[] {
   return [...s.pigs, s.wolf];
 }
 
-function startPicking(s: WolfAndPigsState, now: number): Step<WolfAndPigsState> {
+function startPicking(s: WolfAndPigsState): Step<WolfAndPigsState> {
   s.phase = "picking";
   s.picks = {};
   s.idled = [];
-  s.deadline = now + s.pickSeconds * 1000;
-  return { state: s, timer: { id: "pick", at: s.deadline } };
+  return { state: s, timer: null };
 }
 
 function close(state: WolfAndPigsState, ctx: Ctx): Step<WolfAndPigsState> {
@@ -84,7 +78,6 @@ function close(state: WolfAndPigsState, ctx: Ctx): Step<WolfAndPigsState> {
   const round: WolfRound = { round: s.round, pigPicks, attacked, caught };
   s.history.push(round);
   s.phase = "revealing";
-  s.deadline = null;
   return {
     state: s,
     timer: { id: "reveal", at: ctx.now + REVEAL_MS },
@@ -113,7 +106,7 @@ function afterReveal(state: WolfAndPigsState, ctx: Ctx): Step<WolfAndPigsState> 
   }
   if (last.caught.length >= 2) s.pigs = last.caught;
   s.round++;
-  return startPicking(s, ctx.now);
+  return startPicking(s);
 }
 
 export const wolfAndPigs: GameDefinition<
@@ -128,17 +121,8 @@ export const wolfAndPigs: GameDefinition<
   tagline: "わら・木・レンガの家に隠れる。狼が選んだ家にいたら負け。狼が誰かは分からない",
   minPlayers: 3,
   maxPlayers: 10,
-  defaultConfig: { pickSeconds: 20, runoffMiss: "wolfLoses" },
+  defaultConfig: { runoffMiss: "wolfLoses" },
   configFields: [
-    {
-      key: "pickSeconds",
-      label: "選択時間",
-      options: [
-        { value: 10, label: "10秒" },
-        { value: 20, label: "20秒" },
-        { value: 30, label: "30秒" },
-      ],
-    },
     {
       key: "runoffMiss",
       label: "延長戦で狼が空振りしたとき",
@@ -153,7 +137,6 @@ export const wolfAndPigs: GameDefinition<
     const wolf = pick(ctx.random, players);
     const s: WolfAndPigsState = {
       phase: "roleCheck",
-      pickSeconds: config.pickSeconds,
       runoffMiss: config.runoffMiss,
       players,
       wolf,
@@ -162,10 +145,9 @@ export const wolfAndPigs: GameDefinition<
       roleChecked: [],
       picks: {},
       idled: [],
-      deadline: ctx.now + ROLE_CHECK_MS,
       history: [],
     };
-    return { state: s, timer: { id: "roleCheck", at: s.deadline! } };
+    return { state: s };
   },
 
   applyAction(state, playerId, action, ctx) {
@@ -175,7 +157,7 @@ export const wolfAndPigs: GameDefinition<
       case "checkRole": {
         if (s.phase !== "roleCheck") fail("invalid_phase", "今は確認できません");
         if (!s.roleChecked.includes(playerId)) s.roleChecked.push(playerId);
-        if (s.roleChecked.length === s.players.length) return startPicking(s, ctx.now);
+        if (s.roleChecked.length === s.players.length) return startPicking(s);
         return { state: s };
       }
       case "pick": {
@@ -196,11 +178,14 @@ export const wolfAndPigs: GameDefinition<
   },
 
   onTimer(state, timerId, ctx) {
-    if (timerId === "roleCheck" && state.phase === "roleCheck") {
-      return startPicking(structuredClone(state), ctx.now);
-    }
-    if (timerId === "pick" && state.phase === "picking") return close(state, ctx);
     if (timerId === "reveal" && state.phase === "revealing") return afterReveal(state, ctx);
+    return { state };
+  },
+
+  autoAct(state, ctx) {
+    // 役の確認待ちは確認済みにし、家の選択待ちは未選択の人をランダムな家に入れる（close 内で処理）
+    if (state.phase === "roleCheck") return startPicking(structuredClone(state));
+    if (state.phase === "picking") return close(state, ctx);
     return { state };
   },
 
@@ -212,7 +197,6 @@ export const wolfAndPigs: GameDefinition<
       checkedCount: s.roleChecked.length,
       pickedCount: Object.keys(s.picks).length,
       totalPickers: s.pigs.length + 1,
-      deadline: s.deadline,
       history: s.history,
       wolf: s.phase === "done" ? s.wolf : undefined,
     };

@@ -43,9 +43,12 @@
 - 1の目そのものは宣言できない（ルールを単純にするため）。
 - 設定で OFF にすると、1〜6すべての目を宣言でき、1は1としてだけ数える。
 
-### 制限時間
+### 待ち時間とおまかせ
 
-- 手番ごとに 20 秒。時間切れの場合は **最小の吊り上げ** を自動で宣言する（同じ個数で次に大きい目、目が6なら個数+1で最小の目）。最初の手番なら「2の目が1個」。
+- 手番に制限時間はない。手番の人が宣言かダウトをするまで待つ。
+- 待っている人は画面上部に「〇〇さん待ち」と表示する。
+- 誰も操作しない状態が30秒続くと、全端末に「おまかせで進める」ボタンが出る（2回押しで実行。詳細は [common-design.md](./common-design.md#おまかせで進める)）。
+- おまかせ：**最小の吊り上げ** を宣言する（同じ個数で次に大きい目、目が6なら個数+1で最小の目）。最初の手番なら「2の目が1個」。吊り上げ不可能ならダウト。
 
 ### 設定
 
@@ -53,7 +56,6 @@
 | --- | --- | --- |
 | 1をワイルドにする | ON / OFF | ON |
 | サイコロの個数 | 自動 / 3 / 4 / 5 | 自動 |
-| 手番時間 | 15 / 20 / 30 秒 | 20秒 |
 | 期待値のヒント | ON（宣言UIに「平均的にはこのくらい」を表示）/ OFF | OFF |
 
 期待値のヒントは初心者向け。自分の出目＋他人のサイコロ数×(1/3 または 1/6) を表示する。
@@ -70,7 +72,7 @@
 │ あなたのサイコロ            │
 │ ⚃ ⚄ ⚀ ⚄ ⚁                 │  ← 長押しで表示（周りから覗かれにくく）
 │                          │
-│ あなたの番 ⏱ 14            │
+│ あなたの番                 │
 │ 個数 [－] 6 [＋]           │
 │ 目   ⚁ ⚂ ⚃ [⚄] ⚅          │  ← 前の宣言より弱い組み合わせは選べない
 │ [ 宣言する ]  [ ダウト！ ]  │
@@ -94,7 +96,6 @@
 interface LiarsDiceConfig {
   onesWild: boolean;
   dicePerPlayer: 'auto' | 3 | 4 | 5;
-  turnSeconds: 15 | 20 | 30;
   showHint: boolean;
 }
 ```
@@ -112,7 +113,6 @@ interface LiarsDiceState {
   order: PlayerId[];
   turnIndex: number;
   bids: Bid[];                   // 宣言履歴
-  deadline: number | null;
   challenge: {
     challenger: PlayerId;
     bid: Bid;
@@ -132,17 +132,18 @@ type LiarsDiceAction =
 
 ### 処理
 
-- `setup`：各プレイヤーのサイコロを `ctx.random` で振る。開始プレイヤーを決め `turn` タイマー。
+- `setup`：各プレイヤーのサイコロを `ctx.random` で振る。開始プレイヤーを決める。
 - `applyAction(bid)`
   - 検証：手番本人、`1 <= count <= totalDice`、`onesWild` なら `face !== 1`、直前の宣言より強い（`count > prev.count || (count === prev.count && face > prev.face)`）。
-  - `bids` に追加、手番を進め、`turn` タイマー更新。イベント `dice.bid`。
+  - `bids` に追加、手番を進める。イベント `dice.bid`。
 - `applyAction(doubt)`
   - 検証：手番本人、`bids.length > 0`。
   - `actual` = 全員の `face` の個数（`onesWild` なら 1 も加算）。
   - `loser` = `actual >= bid.count` ? challenger : bid.playerId。
   - `phase='revealed'`、イベント `dice.reveal`、`result = { losers:[loser], reason: '「${face}の目が${count}個」に対して実際は${actual}個', detail: { dice, bid, actual } }`。
 - 最大宣言（`count === totalDice && face === 6`）の後は宣言できないので、UI はダウトのみ有効にする。
-- `onTimer(turn)`：最小の吊り上げを自動宣言。吊り上げ不可能（最大宣言の後）なら自動ダウト。
+- `autoAct`：最小の吊り上げを宣言（`auto: true`）。吊り上げ不可能（最大宣言の後）ならダウト。
+- `onTimer`：使わない（タイマーなし）。
 - `pendingPlayers`：`[手番プレイヤー]`。
 
 ### View
@@ -155,7 +156,6 @@ interface LiarsDiceTableView {
   totalDice: number;
   diceCounts: Record<PlayerId, number>;
   bids: Bid[];
-  deadline: number | null;
   onesWild: boolean;
   reveal?: { dice: Record<PlayerId, Face[]>; bid: Bid; actual: number; challenger: PlayerId; loser: PlayerId };
 }
@@ -170,5 +170,5 @@ interface LiarsDicePlayerView {
 
 ### エッジケース
 
-- 切断中のプレイヤーは時間切れで最小の吊り上げが入るため、進行は止まらない。
+- 切断中のプレイヤーの手番で止まった場合は「おまかせで進める」で進める。
 - 本家 Perudo はダウトで負けた人のサイコロが減り、最後の1人まで続けるが、1ラウンドで敗者1人を決める方針に合わせ、1回のダウトでラウンドを終える。

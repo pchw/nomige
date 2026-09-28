@@ -11,6 +11,7 @@ import {
 } from "~/games/types";
 import {
   MAX_NAME_LENGTH,
+  AUTO_ACT_AFTER_MS,
   MAX_PLAYERS,
   PASSES_PER_PLAYER,
   type ClientMessage,
@@ -24,7 +25,8 @@ import {
 export interface RoomData {
   code: string;
   gameId: GameId;
-  config: Record<string, unknown>;
+  /** ゲームごとの設定。ゲームを切り替えて戻ってきても前の設定が残る */
+  configs: Partial<Record<GameId, Record<string, unknown>>>;
   phase: RoomPhase;
   hostDeviceId: string | null;
   penalty: string;
@@ -42,7 +44,13 @@ export interface RoomData {
   >;
   playerOrder: string[];
   round: number;
-  game: { version: number; state: unknown; timer: Timer | null } | null;
+  game: {
+    version: number;
+    state: unknown;
+    timer: Timer | null;
+    /** 最後に誰かが操作した（またはゲームが進んだ）時刻。「おまかせで進める」の判定に使う */
+    lastProgressAt: number;
+  } | null;
   lastResult: ResultView | null;
   rngState: number;
   nextPlayerSeq: number;
@@ -58,7 +66,7 @@ export function createRoomData(code: string, gameId: GameId, now: number, seed: 
   return {
     code,
     gameId,
-    config: { ...GAMES[gameId].defaultConfig },
+    configs: {},
     phase: "lobby",
     hostDeviceId: null,
     penalty: "1口飲む",
@@ -83,6 +91,11 @@ function withRng<T>(room: RoomData, now: number, fn: (ctx: Ctx) => T): T {
   }
 }
 
+/** 現在のゲームの設定（保存値を選択肢で検証し、足りない項目は初期値で補う） */
+export function configOf(room: RoomData): Record<string, unknown> {
+  return sanitizeConfig(GAMES[room.gameId], room.configs?.[room.gameId] ?? {});
+}
+
 function err(code: string, message: string): Outcome {
   return { error: { code, message } };
 }
@@ -95,10 +108,11 @@ function cleanName(name: unknown): string {
   return typeof name === "string" ? name.trim().slice(0, MAX_NAME_LENGTH) : "";
 }
 
-function applyStep(room: RoomData, step: Step<unknown>): Outcome {
+function applyStep(room: RoomData, step: Step<unknown>, now: number): Outcome {
   const game = room.game!;
   game.state = step.state;
   game.version++;
+  game.lastProgressAt = now;
   if (step.timer !== undefined) game.timer = step.timer;
   if (step.result) {
     const { losers, reason, tieBreak } = step.result;
@@ -131,9 +145,9 @@ function startGame(room: RoomData, now: number): Outcome {
   room.round++;
   room.phase = "playing";
   room.lastResult = null;
-  room.game = { version: 0, state: null, timer: null };
-  const step = withRng(room, now, (ctx) => def.setup([...room.playerOrder], room.config, ctx));
-  return applyStep(room, step);
+  room.game = { version: 0, state: null, timer: null, lastProgressAt: now };
+  const step = withRng(room, now, (ctx) => def.setup([...room.playerOrder], configOf(room), ctx));
+  return applyStep(room, step, now);
 }
 
 export function handleMessage(
@@ -200,7 +214,6 @@ export function handleMessage(
       if (!editable) return err("playing", "ゲーム中は変更できません");
       if (!isGameId(msg.gameId)) return err("invalid_game", "不明なゲームです");
       room.gameId = msg.gameId;
-      room.config = { ...GAMES[msg.gameId].defaultConfig };
       room.phase = "lobby";
       room.game = null;
       return {};
@@ -208,7 +221,11 @@ export function handleMessage(
     case "room.config": {
       if (!isHost(room, deviceId)) return err("forbidden", "ホストのみ変更できます");
       if (!editable) return err("playing", "ゲーム中は変更できません");
-      room.config = sanitizeConfig(GAMES[room.gameId], { ...room.config, ...msg.config });
+      room.configs ??= {};
+      room.configs[room.gameId] = sanitizeConfig(GAMES[room.gameId], {
+        ...configOf(room),
+        ...msg.config,
+      });
       return {};
     }
     case "room.penalty": {
@@ -237,11 +254,22 @@ export function handleMessage(
         const step = withRng(room, now, (ctx) =>
           def.applyAction(room.game!.state, msg.playerId, msg.action, ctx),
         );
-        return applyStep(room, step);
+        return applyStep(room, step, now);
       } catch (e) {
         if (e instanceof GameError) return err(e.code, e.message);
         throw e;
       }
+    }
+    case "game.auto": {
+      const game = room.game;
+      if (room.phase !== "playing" || !game) return err("not_playing", "ゲーム中ではありません");
+      const def = GAMES[room.gameId];
+      if (def.pendingPlayers(game.state).length === 0) return {};
+      if (now - game.lastProgressAt < AUTO_ACT_AFTER_MS) {
+        return err("too_early", "もう少し待ってからおまかせにできます");
+      }
+      const step = withRng(room, now, (ctx) => def.autoAct(game.state, ctx));
+      return applyStep(room, step, now);
     }
     case "result.pass": {
       const p = room.players[msg.playerId];
@@ -269,7 +297,7 @@ export function handleTimer(room: RoomData, now: number): Outcome {
   game.timer = null;
   const def = GAMES[room.gameId];
   const step = withRng(room, now, (ctx) => def.onTimer(game.state, timer.id, ctx));
-  return applyStep(room, step);
+  return applyStep(room, step, now);
 }
 
 /** 接続中の端末が変わったとき、ホストが不在なら接続中の端末に引き継ぐ */
@@ -285,7 +313,7 @@ export function roomView(room: RoomData, connectedDeviceIds: string[]): RoomView
   return {
     code: room.code,
     gameId: room.gameId,
-    config: room.config,
+    config: configOf(room),
     phase: room.phase,
     hostDeviceId: room.hostDeviceId ?? "",
     penalty: room.penalty,
@@ -313,5 +341,6 @@ export function gameView(room: RoomData, deviceId: string): GameView | null {
     table: def.tableView(game.state),
     players,
     pending: room.phase === "playing" ? def.pendingPlayers(game.state) : [],
+    lastProgressAt: game.lastProgressAt,
   };
 }

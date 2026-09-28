@@ -321,11 +321,130 @@ select {
   gap: 10px;
 }
 
-.game-card h3 {
+.game-card-name {
   font-family: var(--font-display);
   font-weight: 400;
   font-size: 1.4rem;
+}
+
+.game-card-btn {
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+  font: inherit;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease;
+}
+
+.game-card-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.game-card-btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.game-card-btn:disabled {
+  cursor: default;
+}
+
+.game-card-btn:disabled:not(.game-card-selected) {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.game-card-selected {
+  outline: 4px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.game-card-note {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border: var(--line-thin);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 0.8rem;
+}
+
+.game-card-warn {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.game-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(210px, 240px);
+  gap: 14px;
+  overflow-x: auto;
+  padding: 6px 8px 14px 6px;
+  margin: 0 -8px 8px -6px;
+  scroll-snap-type: x mandatory;
+}
+
+.game-scroll .game-card {
+  scroll-snap-align: start;
+}
+
+.game-scroll .game-tagline {
+  font-size: 0.85rem;
+}
+
+.picker-section {
+  margin-bottom: 18px;
+}
+
+.picker-section .section-title small {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+.result-lobby-btn {
+  margin-bottom: 18px;
+}
+
+.skip-btn {
+  margin-top: 12px;
+}
+
+/* ---------- Wait bar ---------- */
+
+.wait-bar {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.wait-bar-me {
+  background: var(--yellow);
+  animation: pulse 1200ms ease-in-out infinite;
+}
+
+.wait-text {
   margin: 0;
+  font-size: 1.05rem;
+}
+
+.wait-text strong {
+  font-family: var(--font-display);
+  font-weight: 400;
 }
 
 .game-emoji {
@@ -355,7 +474,8 @@ select {
   list-style: none;
 }
 
-.tags li {
+.tags li,
+.tags .tag {
   background: var(--white);
   border: var(--line-thin);
   border-radius: 999px;
@@ -697,47 +817,6 @@ select {
   flex-wrap: wrap;
   margin: 0 0 14px;
   font-size: 1.1rem;
-}
-
-.countdown {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 160px;
-  margin: 6px 0 12px;
-}
-
-.countdown-num {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  min-width: 1.6em;
-  text-align: right;
-}
-
-.countdown-bar {
-  flex: 1;
-  height: 16px;
-  border: var(--line);
-  border-radius: 999px;
-  background: var(--white);
-  overflow: hidden;
-}
-
-.countdown-bar span {
-  display: block;
-  height: 100%;
-  background: var(--green);
-  transition: width 100ms linear;
-}
-
-.countdown-hurry .countdown-bar span {
-  background: var(--red);
-}
-
-.countdown-hurry .countdown-num {
-  color: var(--red);
-  animation: shake 300ms infinite;
 }
 
 .hand-active {

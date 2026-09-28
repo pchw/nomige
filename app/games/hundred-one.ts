@@ -18,23 +18,18 @@ export interface Play {
 
 export interface HundredOneConfig {
   limit: 101 | 51;
-  turnSeconds: 5 | 10 | 20;
-  endgameSpeedUp: boolean;
 }
 
 export interface HundredOneState {
   phase: "turn" | "busted";
   total: number;
   limit: number;
-  turnSeconds: number;
-  endgameSpeedUp: boolean;
   deck: Card[];
   discard: Card[];
   hands: Record<PlayerId, Card[]>;
   order: PlayerId[];
   turnIndex: number;
   direction: 1 | -1;
-  deadline: number | null;
   lastPlay: Play | null;
   log: Play[];
 }
@@ -49,7 +44,6 @@ export interface HundredOneTableView {
   currentPlayerId: PlayerId;
   nextPlayerId: PlayerId;
   direction: 1 | -1;
-  deadline: number | null;
   handCounts: Record<PlayerId, number>;
   lastPlay: Play | null;
   log: Play[];
@@ -91,15 +85,6 @@ export function applyCard(total: number, limit: number, card: Card, sign: 1 | -1
     case "max":
       return limit;
   }
-}
-
-function isEndgame(s: HundredOneState): boolean {
-  return s.total >= s.limit - 20;
-}
-
-function turnDeadline(s: HundredOneState, now: number): number {
-  const seconds = s.endgameSpeedUp && isEndgame(s) ? Math.min(5, s.turnSeconds) : s.turnSeconds;
-  return now + seconds * 1000;
 }
 
 function nextIndex(s: HundredOneState, from = s.turnIndex): number {
@@ -145,10 +130,8 @@ function play(
 
   if (s.total > s.limit) {
     s.phase = "busted";
-    s.deadline = null;
     return {
       state: s,
-      timer: null,
       events,
       result: { losers: [playerId], reason: `合計 ${s.total} で ${s.limit} を超えた` },
     };
@@ -157,8 +140,7 @@ function play(
   const drawn = draw(s, ctx.random);
   if (drawn) hand.push(drawn);
   s.turnIndex = nextIndex(s);
-  s.deadline = turnDeadline(s, ctx.now);
-  return { state: s, timer: { id: "turn", at: s.deadline }, events };
+  return { state: s, events };
 }
 
 export const hundredOne: GameDefinition<
@@ -173,7 +155,7 @@ export const hundredOne: GameDefinition<
   tagline: "手札を出して合計を増やし、101を超えさせた人が負け",
   minPlayers: 3,
   maxPlayers: 10,
-  defaultConfig: { limit: 101, turnSeconds: 10, endgameSpeedUp: true },
+  defaultConfig: { limit: 101 },
   configFields: [
     {
       key: "limit",
@@ -181,23 +163,6 @@ export const hundredOne: GameDefinition<
       options: [
         { value: 101, label: "101" },
         { value: 51, label: "51（ショート）" },
-      ],
-    },
-    {
-      key: "turnSeconds",
-      label: "手番時間",
-      options: [
-        { value: 5, label: "5秒" },
-        { value: 10, label: "10秒" },
-        { value: 20, label: "20秒" },
-      ],
-    },
-    {
-      key: "endgameSpeedUp",
-      label: "終盤の時間短縮",
-      options: [
-        { value: true, label: "ON" },
-        { value: false, label: "OFF" },
       ],
     },
   ],
@@ -210,20 +175,16 @@ export const hundredOne: GameDefinition<
       phase: "turn",
       total: 0,
       limit: config.limit,
-      turnSeconds: config.turnSeconds,
-      endgameSpeedUp: config.endgameSpeedUp,
       deck,
       discard: [],
       hands,
       order: players,
       turnIndex: Math.floor(ctx.random() * players.length),
       direction: 1,
-      deadline: null,
       lastPlay: null,
       log: [],
     };
-    s.deadline = turnDeadline(s, ctx.now);
-    return { state: s, timer: { id: "turn", at: s.deadline } };
+    return { state: s };
   },
 
   applyAction(state, playerId, action, ctx) {
@@ -231,8 +192,12 @@ export const hundredOne: GameDefinition<
     return play(state, playerId, action.cardId, action.sign, false, ctx);
   },
 
-  onTimer(state, timerId, ctx) {
-    if (timerId !== "turn" || state.phase !== "turn") return { state };
+  onTimer(state) {
+    return { state };
+  },
+
+  autoAct(state, ctx) {
+    if (state.phase !== "turn") return { state };
     const playerId = state.order[state.turnIndex];
     const card = pick(ctx.random, state.hands[playerId]);
     return play(state, playerId, card.id, card.kind === "pm10" ? -1 : undefined, true, ctx);
@@ -249,7 +214,6 @@ export const hundredOne: GameDefinition<
       currentPlayerId: s.order[s.turnIndex],
       nextPlayerId: s.order[nextIndex(s)],
       direction: s.direction,
-      deadline: s.deadline,
       handCounts,
       lastPlay: s.lastPlay,
       log: s.log,

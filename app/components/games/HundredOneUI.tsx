@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type {
   Card,
   HundredOneAction,
   HundredOnePlayerView,
   HundredOneTableView,
 } from "~/games/hundred-one";
-import { Countdown, PlayerChip, vibrate } from "../ui";
+import { PlayerChip } from "../ui";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<HundredOneTableView, HundredOnePlayerView, HundredOneAction>;
@@ -47,19 +47,13 @@ export function PlayingCardView({
   );
 }
 
-export function HundredOneUI({ room, table, view, me, players, act, serverNow }: Props) {
+export function HundredOneUI({ table, view, me, players, act }: Props) {
   const [pmChoice, setPmChoice] = useState<string | null>(null);
   // 自分の番が終わったら ±10 の選択は自動で閉じる
   const pmCard = view?.isMyTurn ? pmChoice : null;
   const setPmCard = setPmChoice;
   const endgame = table.total >= table.limit - 20;
-  const turnSeconds = Number(room.config.turnSeconds);
-  const seconds = endgame && room.config.endgameSpeedUp ? Math.min(5, turnSeconds) : turnSeconds;
   const current = players.get(table.currentPlayerId);
-
-  useEffect(() => {
-    if (view?.isMyTurn) vibrate(120);
-  }, [view?.isMyTurn]);
 
   return (
     <div className="game hundred-one">
@@ -74,7 +68,7 @@ export function HundredOneUI({ room, table, view, me, players, act, serverNow }:
             <span className="last-play">
               直前：{players.get(table.lastPlay.playerId)?.name} が
               <PlayingCardView card={table.lastPlay.card} limit={table.limit} small />
-              {table.lastPlay.auto && <em>（時間切れ）</em>}
+              {table.lastPlay.auto && <em>（おまかせ）</em>}
             </span>
           )}
         </div>
@@ -98,7 +92,6 @@ export function HundredOneUI({ room, table, view, me, players, act, serverNow }:
       {table.phase === "turn" && (
         <section className="turn-banner">
           <strong>{current?.name}</strong> の番
-          <Countdown deadline={table.deadline} total={seconds} serverNow={serverNow} />
         </section>
       )}
 

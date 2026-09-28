@@ -3,7 +3,6 @@ import { pick, shuffle, tieBreak } from "./random";
 import { fail, type Ctx, type GameDefinition, type PlayerId, type Step } from "./types";
 
 export interface KabuttaraOutConfig {
-  pickSeconds: 5 | 10 | 15;
   animalCount: "auto" | number;
   spoilers: boolean;
   strayAnimal: boolean;
@@ -20,7 +19,6 @@ export interface KabuttaraReveal {
 
 export interface KabuttaraOutState {
   phase: "picking" | "revealing" | "done";
-  pickSeconds: number;
   spoilers: boolean;
   strayAnimal: boolean;
   round: number;
@@ -29,11 +27,12 @@ export interface KabuttaraOutState {
   remaining: PlayerId[];
   exited: { playerId: PlayerId; round: number }[];
   picks: Record<PlayerId, AnimalId>;
-  deadline: number | null;
+  /** 「今回はおじゃましない」を選んだおじゃま役 */
+  skipped: PlayerId[];
   lastReveal: KabuttaraReveal | null;
 }
 
-export type KabuttaraOutAction = { type: "pick"; animal: AnimalId };
+export type KabuttaraOutAction = { type: "pick"; animal: AnimalId } | { type: "skip" };
 
 export interface KabuttaraOutTableView {
   phase: KabuttaraOutState["phase"];
@@ -41,8 +40,8 @@ export interface KabuttaraOutTableView {
   animals: AnimalId[];
   remaining: PlayerId[];
   exited: KabuttaraOutState["exited"];
+  /** 選んだ（またはおじゃましないを選んだ）人 */
   pickedPlayerIds: PlayerId[];
-  deadline: number | null;
   spoilers: boolean;
   lastReveal: KabuttaraReveal | null;
 }
@@ -50,9 +49,10 @@ export interface KabuttaraOutTableView {
 export interface KabuttaraOutPlayerView {
   role: "remaining" | "spoiler" | "watching";
   myPick: AnimalId | null;
+  skipped: boolean;
 }
 
-const REVEAL_MS = 2800;
+const REVEAL_MS = 3500;
 const MAX_ROUND = 10;
 
 export function autoAnimalCount(players: number): number {
@@ -61,6 +61,10 @@ export function autoAnimalCount(players: number): number {
 
 function pickers(s: KabuttaraOutState): PlayerId[] {
   return s.spoilers ? s.players : s.remaining;
+}
+
+function decided(s: KabuttaraOutState, p: PlayerId): boolean {
+  return Boolean(s.picks[p]) || s.skipped.includes(p);
 }
 
 /** 残っている人のうち、誰とも（のら動物とも）被らなかった人 */
@@ -75,11 +79,11 @@ export function findUnique(
   return remaining.filter((p) => picks[p] && counts.get(picks[p]) === 1);
 }
 
-function startPicking(s: KabuttaraOutState, now: number): Step<KabuttaraOutState> {
+function startPicking(s: KabuttaraOutState): Step<KabuttaraOutState> {
   s.phase = "picking";
   s.picks = {};
-  s.deadline = now + s.pickSeconds * 1000;
-  return { state: s, timer: { id: "pick", at: s.deadline } };
+  s.skipped = [];
+  return { state: s, timer: null };
 }
 
 function close(state: KabuttaraOutState, ctx: Ctx): Step<KabuttaraOutState> {
@@ -93,7 +97,6 @@ function close(state: KabuttaraOutState, ctx: Ctx): Step<KabuttaraOutState> {
   s.exited.push(...exited.map((playerId) => ({ playerId, round: s.round })));
   s.lastReveal = { round: s.round, picks: s.picks, stray, collided, exited, retry };
   s.phase = "revealing";
-  s.deadline = null;
   return {
     state: s,
     timer: { id: "reveal", at: ctx.now + REVEAL_MS },
@@ -113,17 +116,8 @@ export const kabuttaraOut: GameDefinition<
   tagline: "動物を1匹選ぶ。誰とも被らなかった人から抜け、最後の1人が負け",
   minPlayers: 3,
   maxPlayers: 10,
-  defaultConfig: { pickSeconds: 10, animalCount: "auto", spoilers: true, strayAnimal: true },
+  defaultConfig: { animalCount: "auto", spoilers: true, strayAnimal: true },
   configFields: [
-    {
-      key: "pickSeconds",
-      label: "選択時間",
-      options: [
-        { value: 5, label: "5秒" },
-        { value: 10, label: "10秒" },
-        { value: 15, label: "15秒" },
-      ],
-    },
     {
       key: "animalCount",
       label: "動物の数",
@@ -158,7 +152,6 @@ export const kabuttaraOut: GameDefinition<
       .toSorted((a, b) => ANIMALS.indexOf(a) - ANIMALS.indexOf(b));
     const s: KabuttaraOutState = {
       phase: "picking",
-      pickSeconds: config.pickSeconds,
       spoilers: config.spoilers,
       strayAnimal: config.strayAnimal,
       round: 1,
@@ -167,25 +160,32 @@ export const kabuttaraOut: GameDefinition<
       remaining: [...players],
       exited: [],
       picks: {},
-      deadline: null,
+      skipped: [],
       lastReveal: null,
     };
-    return startPicking(s, ctx.now);
+    return startPicking(s);
   },
 
   applyAction(state, playerId, action, ctx) {
-    if (action.type !== "pick") fail("invalid_action", "不正な操作です");
     if (state.phase !== "picking") fail("not_picking", "今は選べません");
     if (!pickers(state).includes(playerId)) fail("not_picker", "今回は選べません");
-    if (!state.animals.includes(action.animal)) fail("invalid_animal", "選択肢にない動物です");
     const s = structuredClone(state);
-    s.picks[playerId] = action.animal;
-    if (pickers(s).every((p) => s.picks[p])) return close(s, ctx);
+    if (action.type === "pick") {
+      if (!s.animals.includes(action.animal)) fail("invalid_animal", "選択肢にない動物です");
+      s.picks[playerId] = action.animal;
+      s.skipped = s.skipped.filter((p) => p !== playerId);
+    } else if (action.type === "skip") {
+      if (s.remaining.includes(playerId)) fail("cannot_skip", "残っている人は選んでください");
+      delete s.picks[playerId];
+      if (!s.skipped.includes(playerId)) s.skipped.push(playerId);
+    } else {
+      fail("invalid_action", "不正な操作です");
+    }
+    if (pickers(s).every((p) => decided(s, p))) return close(s, ctx);
     return { state: s };
   },
 
   onTimer(state, timerId, ctx) {
-    if (timerId === "pick" && state.phase === "picking") return close(state, ctx);
     if (timerId === "reveal" && state.phase === "revealing") {
       const s = structuredClone(state);
       if (s.remaining.length === 1) {
@@ -207,9 +207,16 @@ export const kabuttaraOut: GameDefinition<
         };
       }
       s.round++;
-      return startPicking(s, ctx.now);
+      return startPicking(s);
     }
     return { state };
+  },
+
+  autoAct(state, ctx) {
+    if (state.phase !== "picking") return { state };
+    const s = structuredClone(state);
+    for (const p of s.remaining) s.picks[p] ??= pick(ctx.random, s.animals);
+    return close(s, ctx);
   },
 
   tableView(s) {
@@ -219,8 +226,7 @@ export const kabuttaraOut: GameDefinition<
       animals: s.animals,
       remaining: s.remaining,
       exited: s.exited,
-      pickedPlayerIds: Object.keys(s.picks),
-      deadline: s.deadline,
+      pickedPlayerIds: pickers(s).filter((p) => decided(s, p)),
       spoilers: s.spoilers,
       lastReveal: s.lastReveal,
     };
@@ -228,10 +234,15 @@ export const kabuttaraOut: GameDefinition<
 
   playerView(s, playerId) {
     const role = s.remaining.includes(playerId) ? "remaining" : s.spoilers ? "spoiler" : "watching";
-    return { role, myPick: s.phase === "picking" ? (s.picks[playerId] ?? null) : null };
+    const picking = s.phase === "picking";
+    return {
+      role,
+      myPick: picking ? (s.picks[playerId] ?? null) : null,
+      skipped: picking && s.skipped.includes(playerId),
+    };
   },
 
   pendingPlayers(s) {
-    return s.phase === "picking" ? pickers(s).filter((p) => !s.picks[p]) : [];
+    return s.phase === "picking" ? pickers(s).filter((p) => !decided(s, p)) : [];
   },
 };

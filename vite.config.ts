@@ -12,6 +12,6 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 8787,
     strictPort: true,
-    allowedHosts: ["erimo.tail3b13b1.ts.net"]
+    allowedHosts: ["erimo.tail3b13b1.ts.net"],
   },
 });

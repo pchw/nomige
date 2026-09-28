@@ -6,7 +6,7 @@ import type {
   PlayingCard,
   Question,
 } from "~/games/high-low";
-import { Countdown, PlayerChip } from "../ui";
+import { PlayerChip } from "../ui";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<HighLowTableView, HighLowPlayerView, HighLowAction>;
@@ -68,7 +68,7 @@ const GUESS_TONE: Partial<Record<Guess, string>> = {
   D: "btn-red",
 };
 
-export function HighLowUI({ room, table, view, me, players, act, serverNow }: Props) {
+export function HighLowUI({ table, view, me, players, act }: Props) {
   const reveal = table.phase !== "guessing" ? table.lastReveal : null;
   const shown = table.table.slice(-4);
 
@@ -134,14 +134,6 @@ export function HighLowUI({ room, table, view, me, players, act, serverNow }: Pr
         )}
       </section>
 
-      {table.phase === "guessing" && (
-        <Countdown
-          deadline={table.deadline}
-          total={Number(room.config.guessSeconds)}
-          serverNow={serverNow}
-        />
-      )}
-
       {me && view && table.phase === "guessing" && (
         <section className="panel hand-active">
           {view.inBus ? (
@@ -159,7 +151,7 @@ export function HighLowUI({ room, table, view, me, players, act, serverNow }: Pr
                   </button>
                 ))}
               </div>
-              {view.myGuess && <p className="muted">予想済み。締め切りまで変更できます</p>}
+              {view.myGuess && <p className="muted">予想済み。全員が選ぶまで変更できます</p>}
             </>
           ) : (
             <p className="safe-banner">セーフ！降車済み。観戦しよう</p>

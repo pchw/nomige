@@ -68,13 +68,13 @@ describe("ライアーダイス", () => {
     expect(step.result?.losers).toEqual(["a"]);
   });
 
-  it("時間切れは最小の吊り上げ、吊り上げ不可なら自動ダウト", () => {
+  it("おまかせは最小の吊り上げ、吊り上げ不可ならダウト", () => {
     const s = setup({ bids: [{ playerId: "c", count: 3, face: 6, auto: false }] });
-    const step = liarsDice.onTimer(s, "turn", ctxAt(0));
+    const step = liarsDice.autoAct(s, ctxAt(0));
     expect(step.state.bids.at(-1)).toMatchObject({ playerId: "a", count: 4, face: 2, auto: true });
 
     const maxed = setup({ bids: [{ playerId: "c", count: 15, face: 6, auto: false }] });
-    expect(liarsDice.onTimer(maxed, "turn", ctxAt(0)).result?.losers).toEqual(["c"]);
+    expect(liarsDice.autoAct(maxed, ctxAt(0)).result?.losers).toEqual(["c"]);
   });
 
   it("他人のサイコロはプレイヤービューに含まれない", () => {

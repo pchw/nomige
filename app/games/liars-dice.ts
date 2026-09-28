@@ -13,7 +13,6 @@ export interface Bid {
 export interface LiarsDiceConfig {
   onesWild: boolean;
   dicePerPlayer: "auto" | 3 | 4 | 5;
-  turnSeconds: 15 | 20 | 30;
   showHint: boolean;
 }
 
@@ -27,14 +26,12 @@ export interface Challenge {
 export interface LiarsDiceState {
   phase: "bidding" | "revealed";
   onesWild: boolean;
-  turnSeconds: number;
   showHint: boolean;
   dice: Record<PlayerId, Face[]>;
   totalDice: number;
   order: PlayerId[];
   turnIndex: number;
   bids: Bid[];
-  deadline: number | null;
   challenge: Challenge | null;
 }
 
@@ -47,7 +44,6 @@ export interface LiarsDiceTableView {
   totalDice: number;
   diceCounts: Record<PlayerId, number>;
   bids: Bid[];
-  deadline: number | null;
   onesWild: boolean;
   reveal?: Challenge & { dice: Record<PlayerId, Face[]> };
 }
@@ -96,10 +92,9 @@ function current(s: LiarsDiceState): PlayerId {
   return s.order[s.turnIndex];
 }
 
-function advance(s: LiarsDiceState, now: number): Step<LiarsDiceState> {
+function advance(s: LiarsDiceState): Step<LiarsDiceState> {
   s.turnIndex = (s.turnIndex + 1) % s.order.length;
-  s.deadline = now + s.turnSeconds * 1000;
-  return { state: s, timer: { id: "turn", at: s.deadline } };
+  return { state: s };
 }
 
 function bid(
@@ -108,7 +103,6 @@ function bid(
   count: number,
   face: Face,
   auto: boolean,
-  now: number,
 ): Step<LiarsDiceState> {
   const s = structuredClone(state);
   if (s.phase !== "bidding") fail("not_playing", "ゲームは終了しています");
@@ -121,7 +115,7 @@ function bid(
     fail("weak_bid", "前の宣言より強い宣言をしてください");
   const b: Bid = { playerId, count, face, auto };
   s.bids.push(b);
-  const step = advance(s, now);
+  const step = advance(s);
   return { ...step, events: [{ name: "dice.bid", data: b }] };
 }
 
@@ -134,11 +128,9 @@ function doubt(state: LiarsDiceState, playerId: PlayerId): Step<LiarsDiceState> 
   const actual = countFace(s.dice, last.face, s.onesWild);
   const loser = actual >= last.count ? playerId : last.playerId;
   s.phase = "revealed";
-  s.deadline = null;
   s.challenge = { challenger: playerId, bid: last, actual, loser };
   return {
     state: s,
-    timer: null,
     events: [{ name: "dice.reveal", data: s.challenge }],
     result: {
       losers: [loser],
@@ -162,7 +154,7 @@ export const liarsDice: GameDefinition<
   tagline: "全員のサイコロの出目を予想して宣言を吊り上げ、嘘だと思ったらダウト",
   minPlayers: 3,
   maxPlayers: 8,
-  defaultConfig: { onesWild: true, dicePerPlayer: "auto", turnSeconds: 20, showHint: false },
+  defaultConfig: { onesWild: true, dicePerPlayer: "auto", showHint: false },
   configFields: [
     {
       key: "onesWild",
@@ -180,15 +172,6 @@ export const liarsDice: GameDefinition<
         { value: 3, label: "3個" },
         { value: 4, label: "4個" },
         { value: 5, label: "5個" },
-      ],
-    },
-    {
-      key: "turnSeconds",
-      label: "手番時間",
-      options: [
-        { value: 15, label: "15秒" },
-        { value: 20, label: "20秒" },
-        { value: 30, label: "30秒" },
       ],
     },
     {
@@ -213,32 +196,33 @@ export const liarsDice: GameDefinition<
     const s: LiarsDiceState = {
       phase: "bidding",
       onesWild: config.onesWild,
-      turnSeconds: config.turnSeconds,
       showHint: config.showHint,
       dice,
       totalDice: perPlayer * players.length,
       order: players,
       turnIndex: Math.floor(ctx.random() * players.length),
       bids: [],
-      deadline: ctx.now + config.turnSeconds * 1000,
       challenge: null,
     };
-    return { state: s, timer: { id: "turn", at: s.deadline! } };
+    return { state: s };
   },
 
-  applyAction(state, playerId, action, ctx) {
-    if (action.type === "bid")
-      return bid(state, playerId, action.count, action.face, false, ctx.now);
+  applyAction(state, playerId, action) {
+    if (action.type === "bid") return bid(state, playerId, action.count, action.face, false);
     if (action.type === "doubt") return doubt(state, playerId);
     fail("invalid_action", "不正な操作です");
   },
 
-  onTimer(state, timerId, ctx) {
-    if (timerId !== "turn" || state.phase !== "bidding") return { state };
+  onTimer(state) {
+    return { state };
+  },
+
+  autoAct(state) {
+    if (state.phase !== "bidding") return { state };
     const playerId = current(state);
     const min = minimumBid(state.bids.at(-1), state.totalDice, state.onesWild);
     if (!min) return doubt(state, playerId);
-    return bid(state, playerId, min.count, min.face, true, ctx.now);
+    return bid(state, playerId, min.count, min.face, true);
   },
 
   tableView(s) {
@@ -251,7 +235,6 @@ export const liarsDice: GameDefinition<
       totalDice: s.totalDice,
       diceCounts,
       bids: s.bids,
-      deadline: s.deadline,
       onesWild: s.onesWild,
       reveal: s.challenge ? { ...s.challenge, dice: s.dice } : undefined,
     };
