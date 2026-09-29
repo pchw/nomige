@@ -44,9 +44,11 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
   const roll = table.phase === "rolling" ? table.roll : null;
   const elapsed = roll ? Math.max(0, now - roll.startedAt) : 0;
   const finished = !!roll && elapsed >= rollDurationMs(roll);
-  const thrower = players.get((roll?.playerId ?? table.currentPlayerId) || "");
+  // 決着後（結果画面）は、負けた人の1投が止まった後の盤面を見せる
+  const board = table.phase === "done" ? table.loserBoard : null;
+  const thrower = players.get((roll?.playerId ?? board?.playerId ?? table.currentPlayerId) || "");
 
-  // 転がっている間は記録された軌跡、それ以外は並べ直したピン
+  // 転がっている間は記録された軌跡、決着後は負けた人の盤面、それ以外は並べ直したピン
   let ball = { x: myTurn ? x : LANE_WIDTH / 2, y: START_Y };
   let pins = PINS;
   // 今のコマまでに倒れたピン（倒れた瞬間に横倒しの形に変える）
@@ -55,6 +57,11 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
     const index = frameIndexAt(roll.frames, elapsed);
     down = roll.knockedAt.map((f) => f !== null && f <= index);
     const frame = frameAt(roll.frames, elapsed);
+    ball = { x: frame[0], y: frame[1] };
+    pins = PINS.map((_, i) => ({ x: frame[2 + 2 * i], y: frame[3 + 2 * i] }));
+  } else if (board) {
+    const frame = board.final;
+    down = PINS.map((_, i) => board.knocked.includes(i));
     ball = { x: frame[0], y: frame[1] };
     pins = PINS.map((_, i) => ({ x: frame[2 + 2 * i], y: frame[3 + 2 * i] }));
   }
@@ -87,7 +94,7 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
         {thrower && (
           <>
             <PlayerChip player={thrower} active />
-            <span>{roll ? "の投球" : "の番"}</span>
+            <span>{roll ? "の投球" : board ? "の最後の1投" : "の番"}</span>
           </>
         )}
       </section>
@@ -173,6 +180,7 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
             {scoreText(roll.knocked.length, roll.gutter)}
           </p>
         )}
+        {board && <p className="bowling-result">{scoreText(board.knocked.length, board.gutter)}</p>}
 
         {myTurn && !roll && (
           <div className="aim-controls">

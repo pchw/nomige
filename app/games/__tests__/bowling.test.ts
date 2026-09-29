@@ -103,6 +103,10 @@ describe("ボウリング", () => {
     s = play(s, "b", 10, -8, 60).state; // ガター
     const end = play(s, "c", CENTER, 0, 60);
     expect(end.result?.losers).toEqual(["b"]);
+    // 結果画面では負けた人の1投（ガターで0本）を見せる
+    const board = bowling.tableView(end.state).loserBoard;
+    expect(board).toMatchObject({ playerId: "b", knocked: [], gutter: true });
+    expect(board?.final).toHaveLength(2 + 2 * PINS.length);
   });
 
   it("最下位が並んだら、その人たちだけで延長戦", () => {
@@ -135,6 +139,7 @@ describe("ボウリング", () => {
       rounds++;
     }
     expect(rounds).toBe(4);
+    expect(bowling.tableView(s).loserBoard?.playerId).toBe(result?.losers[0]);
     expect(s.rolloff).toBe(3);
     expect(result?.tieBreak?.candidates).toHaveLength(3);
   });

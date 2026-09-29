@@ -36,6 +36,33 @@ function renderJustThrown(UI: any, def: any, action: unknown, clockLag: number) 
 }
 
 describe("投げた直後のアニメーション", () => {
+  it("ボウリングの結果画面では、負けた人の倒れたピンを横倒しで描く", () => {
+    const { state } = bowling.setup(ids, bowling.defaultConfig, ctx(0));
+    // 全員が真ん中にまっすぐ投げる（同じ本数なら延長戦を繰り返し、最後はルーレットで決着）
+    let s = state;
+    while (s.phase !== "done") {
+      const p = bowling.pendingPlayers(s)[0];
+      const step = bowling.applyAction(s, p, { type: "roll", x: 30, angle: 0, power: 60 }, ctx(0));
+      s = bowling.onTimer(step.state, "settle", ctx(step.timer!.at)).state;
+    }
+    const table = bowling.tableView(s);
+    const html = renderToString(
+      <BowlingUI
+        room={{} as any}
+        players={players}
+        table={table}
+        me={null}
+        view={null}
+        pending={[]}
+        act={() => {}}
+        serverNow={() => 0}
+      />,
+    );
+    const lying = html.match(/bowling-pin-lying/g)?.length ?? 0;
+    expect(table.loserBoard!.knocked.length).toBeGreaterThan(0);
+    expect(lying).toBe(table.loserBoard!.knocked.length);
+  });
+
   it("軌跡のコマは、開始前でも終了後でも必ず返る", () => {
     const frames = [[0], [1], [2]];
     expect(frameAt(frames, -50)).toEqual([0]);

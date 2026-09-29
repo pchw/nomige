@@ -60,6 +60,15 @@ export interface Roll {
   auto: boolean;
 }
 
+/** 1投の止まった後の盤面（結果画面で見せる。軌跡は持たないので小さい） */
+export interface Board {
+  playerId: PlayerId;
+  /** [ボール, ピン1〜10] の止まった位置 [x, y, ...] */
+  final: number[];
+  knocked: number[];
+  gutter: boolean;
+}
+
 export interface BowlingState {
   phase: "aim" | "rolling" | "done";
   wobble: BowlingConfig["wobble"];
@@ -74,6 +83,9 @@ export interface BowlingState {
   /** 本戦の記録（表示用） */
   history: { rolloff: number; scores: Record<PlayerId, number> }[];
   roll: Roll | null;
+  /** 各自の直近の1投の盤面 */
+  boards: Record<PlayerId, Board>;
+  loser: PlayerId | null;
 }
 
 export type BowlingAction = { type: "roll"; x: number; angle: number; power: number };
@@ -86,6 +98,8 @@ export interface BowlingTableView {
   scores: Record<PlayerId, number>;
   history: BowlingState["history"];
   roll: Roll | null;
+  /** 決着後に見せる、負けた人の1投 */
+  loserBoard: Board | null;
   /** 強さ 0 / 100 のときの方向のぶれ（±度） */
   angleWobble: [number, number];
 }
@@ -195,6 +209,12 @@ function bowl(
   const actualAngle = angle + (ctx.random() * 2 - 1) * spread;
   const result = throwBall(x, actualAngle, power);
   s.scores[playerId] = result.knocked.length;
+  s.boards[playerId] = {
+    playerId,
+    final: result.frames.at(-1)!,
+    knocked: result.knocked,
+    gutter: result.gutter,
+  };
   s.roll = { playerId, x, angle, power, actualAngle, ...result, startedAt: ctx.now, auto };
   s.phase = "rolling";
   return {
@@ -216,6 +236,7 @@ function settle(state: BowlingState, ctx: Ctx): Step<BowlingState> {
   const lowest = s.thrower.filter((p) => s.scores[p] === min);
   if (lowest.length === 1) {
     s.phase = "done";
+    s.loser = lowest[0];
     const reason =
       s.rolloff === 0 ? `${min}本で最下位` : `延長戦${s.rolloff}回目で ${min}本の最下位`;
     return { state: s, timer: null, result: { losers: lowest, reason } };
@@ -223,6 +244,7 @@ function settle(state: BowlingState, ctx: Ctx): Step<BowlingState> {
   if (s.rolloff >= MAX_ROLLOFF) {
     s.phase = "done";
     const tb = tieBreak(ctx.random, lowest);
+    s.loser = tb.chosen;
     return {
       state: s,
       timer: null,
@@ -280,6 +302,8 @@ export const bowling: GameDefinition<
       scores: {},
       history: [],
       roll: null,
+      boards: {},
+      loser: null,
     };
     return { state: s };
   },
@@ -316,6 +340,7 @@ export const bowling: GameDefinition<
       scores: s.scores,
       history: s.history,
       roll: s.roll,
+      loserBoard: s.phase === "done" && s.loser ? s.boards[s.loser] : null,
       angleWobble: ANGLE_WOBBLE[s.wobble],
     };
   },
