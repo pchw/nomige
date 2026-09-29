@@ -3,6 +3,7 @@
 3〜10人で遊べる飲みゲーのウェブアプリ。テーブルに置いたタブレット1台でも、各自のスマホでも遊べる。
 
 - ゲームのルールと設計: [doc/games/](doc/games/README.md)
+- 本番デプロイ手順: [doc/deploy.md](doc/deploy.md)
 - 技術: React Router v8（フレームワークモード / flat routes）+ Cloudflare Workers + Durable Objects（WebSocket でリアルタイム同期）
 
 ## 開発環境

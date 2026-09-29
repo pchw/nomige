@@ -1,6 +1,6 @@
 services:
   app:
-    image: node:22-bookworm-slim
+    build: .
     working_dir: /app
     command: sh -c "npm install && npm run dev"
     ports:
@@ -9,6 +9,8 @@ services:
       - .:/app
       # ホストの node_modules と混ざらないよう、コンテナ専用の名前付きボリュームを使う
       - node_modules:/app/node_modules
+      # wrangler login の認証情報をコンテナの作り直し後も残す
+      - wrangler_config:/root/.config/.wrangler
     environment:
       # Docker Desktop のバインドマウントでファイル変更を確実に拾うため
       CHOKIDAR_USEPOLLING: "true"
@@ -18,3 +20,4 @@ services:
 
 volumes:
   node_modules:
+  wrangler_config:
