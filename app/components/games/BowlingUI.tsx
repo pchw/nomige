@@ -19,7 +19,7 @@ import {
 } from "~/games/bowling";
 import { frameAt, frameIndexAt } from "~/games/physics";
 import { PlayerChip, useNow } from "../ui";
-import { FineSlider, svgPoint } from "./controls";
+import { FineSlider, svgPoint, ThrowBar } from "./controls";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<BowlingTableView, BowlingPlayerView, BowlingAction>;
@@ -68,7 +68,7 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
   });
   const [l, c, r] = [tip(angle - spread), tip(angle), tip(angle + spread)];
 
-  const onTap = (e: React.PointerEvent<SVGSVGElement>) => {
+  const onTap = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!myTurn) return;
     const p = svgPoint(e);
     if (!p) return;
@@ -96,7 +96,7 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
         <svg
           className="bowling-lane"
           viewBox={`${-GUTTER - 2} -2 ${LANE_WIDTH + GUTTER * 2 + 4} ${TOP + 4}`}
-          onPointerDown={onTap}
+          onClick={onTap}
           role="img"
           aria-label="レーン"
         >
@@ -205,14 +205,12 @@ export function BowlingUI({ table, view, me, players, act, serverNow }: Props) {
             <p className="muted small">
               レーンをタップしても方向を決められる。強いほどピンは飛ぶが、黄色の扇の中でぶれる
             </p>
-            <button
-              type="button"
-              className="btn btn-xl btn-block btn-teal"
-              onClick={() => act({ type: "roll", x, angle, power })}
-            >
-              投げる 🎳
-            </button>
           </div>
+        )}
+        {myTurn && !roll && (
+          <ThrowBar tone="btn-teal" onClick={() => act({ type: "roll", x, angle, power })}>
+            投げる 🎳
+          </ThrowBar>
         )}
       </section>
 

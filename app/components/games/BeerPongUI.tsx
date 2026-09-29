@@ -19,7 +19,7 @@ import {
 } from "~/games/beer-pong";
 import { CHARACTERS } from "~/games/characters";
 import { PlayerChip, useNow, type PlayerMap } from "../ui";
-import { FineSlider, svgPoint } from "./controls";
+import { FineSlider, svgPoint, ThrowBar } from "./controls";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<BeerPongTableView, BeerPongPlayerView, BeerPongAction>;
@@ -87,7 +87,7 @@ export function BeerPongUI({ table, view, me, players, act, serverNow }: Props) 
   const d = distanceFor(power);
   const [distWobble, angleWobble] = table.wobble;
 
-  const onTap = (e: React.PointerEvent<SVGSVGElement>) => {
+  const onTap = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!myTurn) return;
     const p = svgPoint(e);
     if (!p) return;
@@ -111,7 +111,7 @@ export function BeerPongUI({ table, view, me, players, act, serverNow }: Props) 
         <svg
           className="pong-table"
           viewBox={`-4 -2 ${TABLE_WIDTH + 8} ${VIEW_FAR - VIEW_NEAR + 4}`}
-          onPointerDown={onTap}
+          onClick={onTap}
           role="img"
           aria-label="テーブル"
         >
@@ -183,14 +183,12 @@ export function BeerPongUI({ table, view, me, players, act, serverNow }: Props) 
             <p className="muted small">
               狙いたいカップをタップすると、そこに向けて合わせる。黄色の範囲のどこかに落ちる
             </p>
-            <button
-              type="button"
-              className="btn btn-xl btn-block btn-coral"
-              onClick={() => act({ type: "throw", angle, power })}
-            >
-              投げる 🏓
-            </button>
           </div>
+        )}
+        {myTurn && !shot && (
+          <ThrowBar tone="btn-coral" onClick={() => act({ type: "throw", angle, power })}>
+            投げる 🏓
+          </ThrowBar>
         )}
       </section>
 

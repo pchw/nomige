@@ -16,6 +16,7 @@ import {
 import type { PlayerId } from "~/games/types";
 import { frameAt } from "~/games/physics";
 import { PlayerChip, useNow, type PlayerMap } from "../ui";
+import { ThrowBar } from "./controls";
 import type { GameUIProps } from "./types";
 
 type Props = GameUIProps<GlassSlideTableView, GlassSlidePlayerView, GlassSlideAction>;
@@ -220,14 +221,12 @@ export function GlassSlideUI({ table, view, me, players, act, serverNow }: Props
                 ＋
               </button>
             </div>
-            <button
-              type="button"
-              className="btn btn-xl btn-block btn-amber"
-              onClick={() => act({ type: "slide", x, power })}
-            >
-              すべらせる 🍺
-            </button>
           </div>
+        )}
+        {myTurn && (
+          <ThrowBar tone="btn-amber" onClick={() => act({ type: "slide", x, power })}>
+            すべらせる 🍺
+          </ThrowBar>
         )}
       </section>
 

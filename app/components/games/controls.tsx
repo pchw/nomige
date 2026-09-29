@@ -1,4 +1,4 @@
-import type { PointerEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 /** スライダー＋微調整の −／＋（酔っていても細かく合わせられるように） */
 export function FineSlider({
@@ -56,8 +56,33 @@ export function FineSlider({
   );
 }
 
-/** SVG 上をタップした位置を viewBox の座標で返す */
-export function svgPoint(e: PointerEvent<SVGSVGElement>): { x: number; y: number } | null {
+/**
+ * 投げるボタン。狙っている間は画面の下に張り付くので、スクロールしなくても押せる。
+ * 盤のパネルの直下に置くこと（パネルが見えている間だけ張り付く）。
+ */
+export function ThrowBar({
+  tone,
+  onClick,
+  children,
+}: {
+  tone: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="throw-bar">
+      <button type="button" className={`btn btn-xl btn-block ${tone}`} onClick={onClick}>
+        {children}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * SVG 上をタップした位置を viewBox の座標で返す。
+ * click で呼ぶこと（pointerdown だとスクロールしようと触れただけで狙いが変わってしまう）。
+ */
+export function svgPoint(e: MouseEvent<SVGSVGElement>): { x: number; y: number } | null {
   const svg = e.currentTarget;
   const m = svg.getScreenCTM();
   if (!m) return null;

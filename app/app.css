@@ -2719,7 +2719,7 @@ select {
   display: block;
   width: 100%;
   max-width: 320px;
-  max-height: 58vh;
+  max-height: 48vh;
   margin: 0 auto;
 }
 
@@ -2893,6 +2893,18 @@ select {
   margin-top: 12px;
 }
 
+/* 狙っている間は投げるボタンを画面の下に張り付ける */
+.throw-bar {
+  position: sticky;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 5;
+  margin-top: 12px;
+}
+
+.throw-bar .btn {
+  box-shadow: var(--shadow);
+}
+
 .fine-slider {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -2960,7 +2972,7 @@ select {
   display: block;
   width: 100%;
   max-width: 300px;
-  max-height: 58vh;
+  max-height: 48vh;
   margin: 0 auto;
   touch-action: manipulation;
 }
@@ -3056,7 +3068,7 @@ select {
   display: block;
   width: 100%;
   max-width: 420px;
-  max-height: 52vh;
+  max-height: 44vh;
   margin: 0 auto;
   touch-action: manipulation;
 }
