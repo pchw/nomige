@@ -17,14 +17,11 @@ export function GameCardBody({ id }: { id: GameId }) {
         <span className="game-card-name">{game.name}</span>
       </span>
       <span className="game-tagline">{game.tagline}</span>
-      <span className="tags">
-        <span className="tag">
-          {game.minPlayers}〜{game.maxPlayers}人
+      {game.publicBoard && (
+        <span className="tags">
+          <span className="tag tag-public">タブレット1台◎</span>
         </span>
-        <span className="tag">{info.duration}</span>
-        <span className="tag">{info.style}</span>
-        {game.publicBoard && <span className="tag tag-public">タブレット1台◎</span>}
-      </span>
+      )}
     </>
   );
 }
