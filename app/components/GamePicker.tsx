@@ -23,6 +23,7 @@ export function GameCardBody({ id }: { id: GameId }) {
         </span>
         <span className="tag">{info.duration}</span>
         <span className="tag">{info.style}</span>
+        {game.publicBoard && <span className="tag tag-public">タブレット1台◎</span>}
       </span>
     </>
   );

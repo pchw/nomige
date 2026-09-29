@@ -79,6 +79,20 @@ for (let step = 0; step < 200 && host.room.phase !== "result"; step++) {
         case "liars-dice":
           action = t.bids.length >= 3 ? { type: "doubt" } : { type: "bid", ...view.minBid };
           break;
+        case "greedy-dice":
+          action = t.rolls.length >= 2 ? { type: "stop" } : { type: "roll" };
+          break;
+        case "minesweeper": {
+          const closed = t.opened.flatMap((v, i) => (v === null ? [i] : []));
+          action = { type: "open", cell: closed[Math.floor(Math.random() * closed.length)] };
+          break;
+        }
+        case "poison-choco": {
+          const col = t.heights.findLastIndex((h) => h > 0);
+          action = { type: "eat", col, row: Math.max(0, t.heights[col] - 2) };
+          if (col === 0 && t.remaining > 1) action.row = 1;
+          break;
+        }
         case "hundred-one": {
           const card = view.hand[0];
           action = { type: "play", cardId: card.id, sign: 1 };

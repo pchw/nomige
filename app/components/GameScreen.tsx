@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
+import { GAMES } from "~/games/registry";
 import type { GameId, PlayerId } from "~/games/types";
 import type { ClientMessage, GameView, RoomView } from "~/protocol";
+import { GreedyDiceUI } from "./games/GreedyDiceUI";
 import { HighLowUI } from "./games/HighLowUI";
 import { HundredOneUI } from "./games/HundredOneUI";
 import { KabuttaraOutUI } from "./games/KabuttaraOutUI";
 import { LiarsDiceUI } from "./games/LiarsDiceUI";
+import { MinesweeperUI } from "./games/MinesweeperUI";
+import { PoisonChocoUI } from "./games/PoisonChocoUI";
 import type { GameUIProps } from "./games/types";
 import { WolfAndPigsUI } from "./games/WolfAndPigsUI";
 import { Avatar, type PlayerMap } from "./ui";
@@ -16,6 +20,9 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "high-low": HighLowUI,
   "kabuttara-out": KabuttaraOutUI,
   "wolf-and-pigs": WolfAndPigsUI,
+  "greedy-dice": GreedyDiceUI,
+  minesweeper: MinesweeperUI,
+  "poison-choco": PoisonChocoUI,
 };
 
 interface Props {
@@ -56,6 +63,16 @@ export function GameScreen({ room, game, players, send, serverNow, boardOnly }: 
       <>
         {waitBar}
         <UI {...common} me={me} view={game.players[me]} act={act(me)} />
+      </>
+    );
+  }
+  // 隠し情報のないゲームは目隠しせず、手番の人がそのまま操作する
+  if (GAMES[game.gameId].publicBoard) {
+    const me = localIds.find((id) => game.pending.includes(id)) ?? null;
+    return (
+      <>
+        {waitBar}
+        <UI {...common} me={me} view={me ? game.players[me] : null} act={me ? act(me) : () => {}} />
       </>
     );
   }

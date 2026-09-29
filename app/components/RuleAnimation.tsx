@@ -441,6 +441,230 @@ function wolfScenes(): Scene[] {
   ];
 }
 
+function greedyScenes(config: Config): Scene[] {
+  const two = config.dice === 2;
+  return [
+    {
+      caption: "振って点を貯める",
+      sub: two ? "サイコロ2個の合計を足していく" : "出た目を足していく",
+      body: (
+        <div className="ra-row">
+          <Die face={4} />
+          <span className="ra-pop" style={delay(0.5)}>
+            <Die face={5} />
+          </span>
+          <span className="ra-arrow">→</span>
+          <span className="ra-total ra-swap">
+            <span className="ra-swap-old">4点</span>
+            <span className="ra-swap-new">9点</span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "何回でも振れる",
+      sub: "満足したら「止める」で確定",
+      body: (
+        <div className="ra-col">
+          <div className="ra-row">
+            <Who c="cat" />
+            <Bubble style={delay(0.3)}>もう1回いけ！</Bubble>
+          </div>
+          <div className="ra-row">
+            <Who c="dog" />
+            <Bubble tone="ra-bubble-ink" style={delay(1.1)}>
+              やめとけ！
+            </Bubble>
+          </div>
+        </div>
+      ),
+    },
+    {
+      caption: "1が出たら0点！",
+      sub: "貯めた点が全部消える",
+      body: (
+        <div className="ra-row">
+          <span className="ra-total">17点</span>
+          <span className="ra-pop" style={delay(0.4)}>
+            <Die face={1} hit />
+          </span>
+          <span className="ra-total ra-bust ra-pop" style={delay(1.2)}>
+            0点
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "一番低い人が負け",
+      sub: "全員1回ずつ挑戦したら決着",
+      body: (
+        <div className="ra-results">
+          {(
+            [
+              ["cat", "14点"],
+              ["dog", "0点"],
+              ["rabbit", "9点"],
+            ] as const
+          ).map(([c, score], i) => (
+            <span key={c} className="ra-result ra-pop" style={delay(0.2 + i * 0.4)}>
+              <Avatar character={c} size="sm" />
+              <b>{score}</b>
+              {c === "dog" && <span>🍺</span>}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+  ];
+}
+
+interface MiniCell {
+  cls?: string;
+  label?: string;
+  style?: CSSProperties;
+}
+
+function MiniGrid({ cols, cells }: { cols: number; cells: MiniCell[] }) {
+  return (
+    <div className="ra-mini-grid" style={{ "--cols": cols } as CSSProperties}>
+      {cells.map((c, i) => (
+        <span key={i} className={c.cls} style={c.style}>
+          {c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 4×3 の盤（地雷は 9 のマス）。開いたマスの数字は実際の配置と合わせる */
+const openMine = (n: number, extra = "", style?: CSSProperties): MiniCell => ({
+  cls: `mine-cell mine-open mine-n${n} ${extra}`,
+  label: n === 0 ? "・" : `${n}`,
+  style,
+});
+
+function mineBoard(overrides: Record<number, MiniCell>): MiniCell[] {
+  return Array.from({ length: 12 }, (_, i) => overrides[i] ?? { cls: "mine-cell" });
+}
+
+const OPENED: Record<number, MiniCell> = {
+  0: openMine(0),
+  1: openMine(0),
+  4: openMine(1),
+  5: openMine(1),
+};
+
+function minesweeperScenes(): Scene[] {
+  return [
+    {
+      caption: "順番に1マス開ける",
+      sub: "1マス目は必ず安全",
+      body: <MiniGrid cols={4} cells={mineBoard({ 5: openMine(1, "ra-pop", delay(0.5)) })} />,
+    },
+    {
+      caption: "数字＝まわりの地雷数",
+      sub: "まわり8マスに何個あるか",
+      body: (
+        <MiniGrid cols={4} cells={mineBoard({ ...OPENED, 8: openMine(1, "ra-pop", delay(0.4)) })} />
+      ),
+    },
+    {
+      caption: "みんなで見て考える",
+      sub: "口出しOK。決めるのは手番の人",
+      body: (
+        <div className="ra-col">
+          <div className="ra-row">
+            <Who c="cat" />
+            <Bubble style={delay(0.3)}>そこ危ない！</Bubble>
+          </div>
+          <div className="ra-row">
+            <Who c="rabbit" />
+            <Bubble tone="ra-bubble-ink" style={delay(1.1)}>
+              いや、ここは安全
+            </Bubble>
+          </div>
+        </div>
+      ),
+    },
+    {
+      caption: "地雷を踏んだら負け",
+      body: (
+        <div className="ra-row">
+          <MiniGrid
+            cols={4}
+            cells={mineBoard({
+              ...OPENED,
+              8: openMine(1),
+              9: { cls: "mine-cell mine-boom ra-pop", label: "💥", style: delay(0.4) },
+            })}
+          />
+          <span className="ra-beer ra-pop" style={delay(1.2)}>
+            アウト🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
+function chocoScenes(): Scene[] {
+  // 5×3 の板チョコ（上の段から）。左下が毒
+  const cols = 5;
+  const rows = 3;
+  const board = (heights: number[], cell: (col: number, row: number) => MiniCell | null) =>
+    Array.from({ length: rows }, (_, i) => rows - 1 - i).flatMap((row) =>
+      Array.from({ length: cols }, (_, col): MiniCell => {
+        const custom = cell(col, row);
+        if (custom) return custom;
+        if (row >= heights[col]) return { cls: "choco-cell choco-eaten" };
+        if (col === 0 && row === 0) return { cls: "choco-cell choco-poison", label: "☠️" };
+        return { cls: "choco-cell" };
+      }),
+    );
+  return [
+    {
+      caption: "板チョコを順番にかじる",
+      sub: "左下の1かけだけ毒入り",
+      body: <MiniGrid cols={cols} cells={board([3, 3, 3, 3, 3], () => null)} />,
+    },
+    {
+      caption: "選んだ所から右上を全部",
+      sub: "大きく食べるか、少しずつか",
+      body: (
+        <MiniGrid
+          cols={cols}
+          cells={board([3, 3, 3, 3, 3], (col, row) =>
+            col >= 2 && row >= 1 ? { cls: "choco-cell choco-bite" } : null,
+          )}
+        />
+      ),
+    },
+    {
+      caption: "毒は最後の1かけ",
+      sub: "ほかがなくなるまで食べられない",
+      body: <MiniGrid cols={cols} cells={board([1, 0, 0, 0, 0], () => null)} />,
+    },
+    {
+      caption: "毒を食べた人が負け",
+      body: (
+        <div className="ra-row">
+          <MiniGrid
+            cols={cols}
+            cells={board([1, 0, 0, 0, 0], (col, row) =>
+              col === 0 && row === 0
+                ? { cls: "choco-cell choco-poison choco-poison-eaten", label: "☠️" }
+                : null,
+            )}
+          />
+          <span className="ra-beer ra-pop" style={delay(0.8)}>
+            🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -453,6 +677,12 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return kabuttaraScenes();
     case "wolf-and-pigs":
       return wolfScenes();
+    case "greedy-dice":
+      return greedyScenes(config);
+    case "minesweeper":
+      return minesweeperScenes();
+    case "poison-choco":
+      return chocoScenes();
   }
 }
 

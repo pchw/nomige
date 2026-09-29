@@ -39,4 +39,22 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1〜2分",
     style: "手番制・カード",
   },
+  "greedy-dice": {
+    emoji: "🐔",
+    color: "var(--red)",
+    duration: "1〜2分",
+    style: "手番制・度胸",
+  },
+  minesweeper: {
+    emoji: "💣",
+    color: "var(--purple)",
+    duration: "1〜2分",
+    style: "手番制・推理",
+  },
+  "poison-choco": {
+    emoji: "🍫",
+    color: "var(--choco)",
+    duration: "1分",
+    style: "手番制・読み合い",
+  },
 };

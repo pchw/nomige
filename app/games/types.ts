@@ -1,6 +1,14 @@
 export type PlayerId = string;
 
-export type GameId = "hundred-one" | "liars-dice" | "high-low" | "kabuttara-out" | "wolf-and-pigs";
+export type GameId =
+  | "hundred-one"
+  | "liars-dice"
+  | "high-low"
+  | "kabuttara-out"
+  | "wolf-and-pigs"
+  | "greedy-dice"
+  | "minesweeper"
+  | "poison-choco";
 
 export interface Ctx {
   /** サーバー時刻 (ms) */
@@ -60,6 +68,11 @@ export interface GameDefinition<C = any, S = any, A = any, TV = any, PV = any> {
   tagline: string;
   minPlayers: number;
   maxPlayers: number;
+  /**
+   * 隠し情報がなく、全員が見ている前で操作するゲーム。
+   * 共有端末でも目隠し画面（ホットシート）を出さず、手番の人がそのまま操作する。
+   */
+  publicBoard?: boolean;
   defaultConfig: C;
   configFields: ConfigField[];
   setup(players: PlayerId[], config: C, ctx: Ctx): Step<S>;

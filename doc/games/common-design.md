@@ -94,6 +94,8 @@ interface Player {
 - サーバーは共有端末にぶら下がった全プレイヤー分のビューを送る。表示の制御はクライアント側で行う（悪意あるユーザーは想定しない。飲み会用途のため）。
 - ゲーム側は「今、誰が操作・確認する必要があるか」を `pendingPlayers(state)` で返し、共通UIがそれに従って順番を制御する（席順に並べる）。
 - 隠し情報がない入力（ハイローの予想など）でも、全員同時に秘密で選ぶゲームでは他人の選択を見て真似できないようにホットシートを使う。
+- 隠し情報がなく、全員が見ている前で操作する手番制のゲーム（欲張りサイコロ・地雷原・毒入りチョコ）は `GameDefinition.publicBoard = true` とし、ホットシートを使わない。共有端末では、配下プレイヤーのうち `pendingPlayers` に含まれる人の操作UIをそのまま表示する。
+  - テーブルに置いた端末を誰かがうっかり触っても進まないよう、盤のマスは「タップで選択 → ボタン（または同じマスをもう一度タップ）で確定」の2段階にする。
 
 ## 4. 通信プロトコル（WebSocket）
 
@@ -303,6 +305,9 @@ src/
     high-low/index.ts
     kabuttara-out/index.ts
     wolf-and-pigs/index.ts
+    greedy-dice/index.ts
+    minesweeper/index.ts
+    poison-choco/index.ts
   assets/
     characters/         # 動物キャラ SVG
   client/
