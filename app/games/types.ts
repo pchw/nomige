@@ -8,7 +8,7 @@ export type GameId =
   | "wolf-and-pigs"
   | "greedy-dice"
   | "minesweeper"
-  | "poison-choco";
+  | "glass-slide";
 
 export interface Ctx {
   /** サーバー時刻 (ms) */

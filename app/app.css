@@ -15,7 +15,7 @@
   --orange: #ff9f43;
   --purple: #b69cff;
   --red: #ff4d4d;
-  --choco: #b0784f;
+  --amber: #ffc24a;
   --muted: #5b5b5b;
   --line: 3px solid var(--ink);
   --line-thin: 2px solid var(--ink);
@@ -203,10 +203,6 @@ select {
 }
 .btn-purple {
   background: var(--purple);
-}
-.btn-choco {
-  background: var(--choco);
-  color: var(--white);
 }
 .btn-ink {
   background: var(--ink);
@@ -2515,8 +2511,7 @@ select {
 
 /* ---------- 地雷原 ---------- */
 
-.mine-info,
-.choco-info {
+.mine-info {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -2524,14 +2519,7 @@ select {
   margin: 0 0 10px;
 }
 
-.choco-info strong {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 400;
-}
-
-.mine-grid,
-.choco-grid {
+.mine-grid {
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   gap: 5px;
@@ -2604,8 +2592,7 @@ select {
   animation: shake 300ms ease-in-out 3;
 }
 
-.mine-actions,
-.choco-actions {
+.mine-actions {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -2615,48 +2602,172 @@ select {
   margin: 12px 0 6px;
 }
 
-/* ---------- 毒入りチョコ ---------- */
+/* ---------- グラスすべらせ ---------- */
 
-.choco-cell {
-  aspect-ratio: 1;
-  min-width: 0;
+.btn-amber {
+  background: var(--amber);
+}
+
+.glass-table {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  max-height: 58vh;
+  margin: 0 auto;
+}
+
+.glass-floor {
+  fill: #3a3a3a;
+}
+
+.glass-floor-text {
+  fill: #ffb3b3;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.glass-wood {
+  fill: #d9a066;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.glass-edge {
+  stroke: var(--red);
+  stroke-width: 2.5;
+}
+
+.glass-tick {
+  stroke: rgba(17, 17, 17, 0.18);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2;
+}
+
+.glass-tick-text {
+  fill: var(--muted);
+  font-size: 6px;
+}
+
+.glass-mark circle {
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.glass-ghost circle {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+  stroke-dasharray: 1.5 1.5;
+}
+
+.glass-spread {
+  fill: rgba(255, 225, 77, 0.55);
+}
+
+.glass-target {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 2;
+}
+
+.glass-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.glass-slider {
+  display: grid;
+  grid-template-columns: 5.5em 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.glass-slider input {
+  width: 100%;
+  accent-color: var(--ink);
+  height: 32px;
+}
+
+.glass-fine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: center;
+}
+
+.glass-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
   padding: 0;
+  list-style: none;
+}
+
+.glass-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.glass-worst {
+  background: #ffe0e0;
+}
+
+.glass-dist {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.ra-table {
+  position: relative;
+  width: 110px;
+  height: 170px;
+  container-type: size;
+  background: #d9a066;
   border: var(--line-thin);
+  border-top: 4px solid var(--red);
   border-radius: 4px;
-  background: var(--choco);
-  box-shadow:
-    inset -3px -3px 0 rgba(0, 0, 0, 0.18),
-    inset 3px 3px 0 rgba(255, 255, 255, 0.18);
-  font-size: clamp(1rem, 5vw, 1.6rem);
-  cursor: pointer;
-  touch-action: manipulation;
+  overflow: visible;
 }
 
-.choco-cell:disabled {
-  cursor: default;
+.ra-glass {
+  position: absolute;
+  transform: translate(-50%, 0);
 }
 
-.choco-eaten {
-  background: transparent;
-  border-style: dashed;
-  border-color: rgba(17, 17, 17, 0.25);
-  box-shadow: none;
+.ra-glass-slide {
+  animation: ra-glass-slide 1100ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-.choco-poison {
-  background: #6d8f4e;
+.ra-glass-fall {
+  animation: ra-glass-slide-fall 1700ms ease-out both;
 }
 
-.choco-bite {
-  background: var(--yellow);
-  animation: pulse 700ms ease-in-out infinite;
+@keyframes ra-glass-slide {
+  from {
+    transform: translate(-50%, var(--from));
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
 }
 
-.choco-poison-eaten {
-  background: var(--red);
-  border-style: solid;
-  border-color: var(--ink);
-  animation: shake 300ms ease-in-out 3;
+@keyframes ra-glass-slide-fall {
+  from {
+    transform: translate(-50%, var(--from));
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.6) rotate(40deg);
+  }
 }
 
 /* ---------- Animations ---------- */
@@ -2755,8 +2866,7 @@ select {
   .bid-actions {
     grid-template-columns: 1fr;
   }
-  .mine-grid,
-  .choco-grid {
+  .mine-grid {
     gap: 3px;
   }
 }

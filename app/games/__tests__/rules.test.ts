@@ -39,10 +39,10 @@ describe("詳しいルール", () => {
     expect(text("wolf-and-pigs", { runoffMiss: "retry" })).toContain("やり直し（今の設定）");
   });
 
-  it("欲張りサイコロ・地雷原・毒入りチョコ：設定が文面に出る", () => {
+  it("欲張りサイコロ・地雷原・グラスすべらせ：設定が文面に出る", () => {
     expect(text("greedy-dice", { dice: 2 })).toContain("今の設定：2個");
     expect(text("minesweeper", { mines: "many" })).toContain("今の設定：多め");
     expect(text("minesweeper", { mines: "normal" })).toContain("6×8");
-    expect(text("poison-choco", { size: "large" })).toContain("7×6");
+    expect(text("glass-slide", { wobble: "high" })).toContain("今の設定：大きい");
   });
 });

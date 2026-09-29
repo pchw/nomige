@@ -2,13 +2,13 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { GAMES } from "~/games/registry";
 import type { GameId, PlayerId } from "~/games/types";
 import type { ClientMessage, GameView, RoomView } from "~/protocol";
+import { GlassSlideUI } from "./games/GlassSlideUI";
 import { GreedyDiceUI } from "./games/GreedyDiceUI";
 import { HighLowUI } from "./games/HighLowUI";
 import { HundredOneUI } from "./games/HundredOneUI";
 import { KabuttaraOutUI } from "./games/KabuttaraOutUI";
 import { LiarsDiceUI } from "./games/LiarsDiceUI";
 import { MinesweeperUI } from "./games/MinesweeperUI";
-import { PoisonChocoUI } from "./games/PoisonChocoUI";
 import type { GameUIProps } from "./games/types";
 import { WolfAndPigsUI } from "./games/WolfAndPigsUI";
 import { Avatar, type PlayerMap } from "./ui";
@@ -22,7 +22,7 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "wolf-and-pigs": WolfAndPigsUI,
   "greedy-dice": GreedyDiceUI,
   minesweeper: MinesweeperUI,
-  "poison-choco": PoisonChocoUI,
+  "glass-slide": GlassSlideUI,
 };
 
 interface Props {

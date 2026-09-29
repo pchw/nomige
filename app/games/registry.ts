@@ -1,10 +1,10 @@
+import { glassSlide } from "./glass-slide";
 import { greedyDice } from "./greedy-dice";
 import { highLow } from "./high-low";
 import { hundredOne } from "./hundred-one";
 import { kabuttaraOut } from "./kabuttara-out";
 import { liarsDice } from "./liars-dice";
 import { minesweeper } from "./minesweeper";
-import { poisonChoco } from "./poison-choco";
 import type { GameDefinition, GameId } from "./types";
 import { wolfAndPigs } from "./wolf-and-pigs";
 
@@ -16,7 +16,7 @@ export const GAMES: Record<GameId, GameDefinition> = {
   "wolf-and-pigs": wolfAndPigs,
   "greedy-dice": greedyDice,
   minesweeper,
-  "poison-choco": poisonChoco,
+  "glass-slide": glassSlide,
 };
 
 export const GAME_ORDER: GameId[] = [
@@ -27,7 +27,7 @@ export const GAME_ORDER: GameId[] = [
   "hundred-one",
   "greedy-dice",
   "minesweeper",
-  "poison-choco",
+  "glass-slide",
 ];
 
 export function isGameId(value: unknown): value is GameId {

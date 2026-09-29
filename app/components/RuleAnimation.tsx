@@ -607,57 +607,87 @@ function minesweeperScenes(): Scene[] {
   ];
 }
 
-function chocoScenes(): Scene[] {
-  // 5×3 の板チョコ（上の段から）。左下が毒
-  const cols = 5;
-  const rows = 3;
-  const board = (heights: number[], cell: (col: number, row: number) => MiniCell | null) =>
-    Array.from({ length: rows }, (_, i) => rows - 1 - i).flatMap((row) =>
-      Array.from({ length: cols }, (_, col): MiniCell => {
-        const custom = cell(col, row);
-        if (custom) return custom;
-        if (row >= heights[col]) return { cls: "choco-cell choco-eaten" };
-        if (col === 0 && row === 0) return { cls: "choco-cell choco-poison", label: "☠️" };
-        return { cls: "choco-cell" };
-      }),
-    );
+/** ルール説明用の小さなテーブル。グラスは top（%）の位置へ滑っていく */
+function MiniTable({
+  glasses,
+}: {
+  glasses: { c: AnimalId; left: number; from?: number; to: number; fall?: boolean; d?: number }[];
+}) {
+  return (
+    <div className="ra-table">
+      <span className="ra-table-edge" />
+      {glasses.map((g) => (
+        <span
+          key={g.c}
+          className={`ra-glass ${g.from !== undefined ? "ra-glass-slide" : ""} ${g.fall ? "ra-glass-fall" : ""}`}
+          style={
+            {
+              left: `${g.left}%`,
+              top: `${g.to}%`,
+              "--from": `${(g.from ?? g.to) - g.to}cqh`,
+              animationDelay: `${g.d ?? 0.3}s`,
+            } as CSSProperties
+          }
+        >
+          <Avatar character={g.c} size="sm" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function glassScenes(): Scene[] {
   return [
     {
-      caption: "板チョコを順番にかじる",
-      sub: "左下の1かけだけ毒入り",
-      body: <MiniGrid cols={cols} cells={board([3, 3, 3, 3, 3], () => null)} />,
+      caption: "端ギリギリを狙う",
+      sub: "位置と強さを決めて滑らせる",
+      body: (
+        <div className="ra-row">
+          <MiniTable glasses={[{ c: "cat", left: 40, from: 88, to: 8 }]} />
+          <span className="ra-tag ra-pop" style={delay(1.6)}>
+            あと 3cm！
+          </span>
+        </div>
+      ),
     },
     {
-      caption: "選んだ所から右上を全部",
-      sub: "大きく食べるか、少しずつか",
+      caption: "強すぎると落ちる！",
+      sub: "テーブルから落ちたらアウト",
       body: (
-        <MiniGrid
-          cols={cols}
-          cells={board([3, 3, 3, 3, 3], (col, row) =>
-            col >= 2 && row >= 1 ? { cls: "choco-cell choco-bite" } : null,
-          )}
+        <div className="ra-row">
+          <MiniTable glasses={[{ c: "dog", left: 55, from: 88, to: -12, fall: true }]} />
+          <span className="ra-beer ra-pop" style={delay(1.6)}>
+            落下🍺
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "ぶつけて落とせる",
+      sub: "自分も弾かれるかも",
+      body: (
+        <MiniTable
+          glasses={[
+            { c: "cat", left: 40, from: 6, to: -12, fall: true, d: 1.1 },
+            { c: "rabbit", left: 40, from: 88, to: 12 },
+          ]}
         />
       ),
     },
     {
-      caption: "毒は最後の1かけ",
-      sub: "ほかがなくなるまで食べられない",
-      body: <MiniGrid cols={cols} cells={board([1, 0, 0, 0, 0], () => null)} />,
-    },
-    {
-      caption: "毒を食べた人が負け",
+      caption: "一番遠い人が負け",
+      sub: "誰も落ちなかったとき",
       body: (
         <div className="ra-row">
-          <MiniGrid
-            cols={cols}
-            cells={board([1, 0, 0, 0, 0], (col, row) =>
-              col === 0 && row === 0
-                ? { cls: "choco-cell choco-poison choco-poison-eaten", label: "☠️" }
-                : null,
-            )}
+          <MiniTable
+            glasses={[
+              { c: "cat", left: 15, to: 10 },
+              { c: "dog", left: 45, to: 22 },
+              { c: "rabbit", left: 72, to: 60 },
+            ]}
           />
           <span className="ra-beer ra-pop" style={delay(0.8)}>
-            🍺
+            🐰🍺
           </span>
         </div>
       ),
@@ -681,8 +711,8 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return greedyScenes(config);
     case "minesweeper":
       return minesweeperScenes();
-    case "poison-choco":
-      return chocoScenes();
+    case "glass-slide":
+      return glassScenes();
   }
 }
 

@@ -51,10 +51,10 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1〜2分",
     style: "手番制・推理",
   },
-  "poison-choco": {
-    emoji: "🍫",
-    color: "var(--choco)",
-    duration: "1分",
-    style: "手番制・読み合い",
+  "glass-slide": {
+    emoji: "🍺",
+    color: "var(--amber)",
+    duration: "1〜2分",
+    style: "手番制・力加減",
   },
 };
