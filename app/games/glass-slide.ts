@@ -1,3 +1,4 @@
+import { body, FRAME_MS, simulate } from "./physics";
 import { tieBreak } from "./random";
 import { fail, type Ctx, type GameDefinition, type PlayerId, type Step } from "./types";
 
@@ -14,10 +15,6 @@ export const POWER_MAX = 100;
 
 const FRICTION = 100; // 減速度（cm/s²）
 const RESTITUTION = 0.85; // グラス同士の跳ね返り
-const DT = 1 / 120;
-const FRAME_EVERY = 4; // 30fps で軌跡を記録
-export const FRAME_MS = DT * FRAME_EVERY * 1000;
-const MAX_STEPS = 120 * 8;
 const AFTER_SLIDE_MS = 1200;
 
 export interface GlassSlideConfig {
@@ -76,6 +73,8 @@ export interface GlassSlidePlayerView {
   isMyTurn: boolean;
 }
 
+export { FRAME_MS };
+
 /** ムラなし・何にも当たらなかったときに進む距離 */
 export function reach(power: number): number {
   return power * 2.4;
@@ -86,77 +85,10 @@ export function distanceToEdge(g: Glass): number | null {
   return g.fallen ? null : TABLE_LENGTH - g.y;
 }
 
-export function isOffTable(x: number, y: number): boolean {
-  return x < 0 || x > TABLE_WIDTH || y < 0 || y > TABLE_LENGTH;
-}
-
-interface Body {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  fallen: boolean;
-}
-
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
-/** 摩擦と円どうしの衝突だけの物理計算。落ちたグラスは他と当たらずに滑り続ける */
-export function simulate(bodies: Body[]): number[][] {
-  const frames: number[][] = [];
-  const record = () => frames.push(bodies.flatMap((b) => [round1(b.x), round1(b.y)]));
-  record();
-  for (let step = 1; step <= MAX_STEPS; step++) {
-    let moving = false;
-    for (const b of bodies) {
-      const speed = Math.hypot(b.vx, b.vy);
-      if (speed === 0) continue;
-      const dec = FRICTION * DT;
-      if (speed <= dec) {
-        b.vx = 0;
-        b.vy = 0;
-        continue;
-      }
-      moving = true;
-      const k = (speed - dec) / speed;
-      b.vx *= k;
-      b.vy *= k;
-      b.x += b.vx * DT;
-      b.y += b.vy * DT;
-      if (!b.fallen && isOffTable(b.x, b.y)) b.fallen = true;
-    }
-    for (let i = 0; i < bodies.length; i++) {
-      for (let j = i + 1; j < bodies.length; j++) collide(bodies[i], bodies[j]);
-    }
-    if (step % FRAME_EVERY === 0 || !moving) record();
-    if (!moving) break;
-  }
-  return frames;
-}
-
-function collide(a: Body, b: Body) {
-  if (a.fallen || b.fallen) return;
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dist = Math.hypot(dx, dy);
-  const min = GLASS_RADIUS * 2;
-  if (dist >= min || dist === 0) return;
-  const nx = dx / dist;
-  const ny = dy / dist;
-  // 近づいているときだけ跳ね返す（同じ重さの弾性衝突）
-  const approach = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-  if (approach > 0) {
-    const j = ((1 + RESTITUTION) / 2) * approach;
-    a.vx -= j * nx;
-    a.vy -= j * ny;
-    b.vx += j * nx;
-    b.vy += j * ny;
-  }
-  // めり込みを半分ずつ押し戻す
-  const push = (min - dist) / 2;
-  a.x -= nx * push;
-  a.y -= ny * push;
-  b.x += nx * push;
-  b.y += ny * push;
+export function isOffTable(x: number, y: number): boolean {
+  return x < 0 || x > TABLE_WIDTH || y < 0 || y > TABLE_LENGTH;
 }
 
 function turnOrder(s: GlassSlideState): PlayerId[] {
@@ -191,17 +123,21 @@ function slide(
   const v0 = Math.sqrt(2 * FRICTION * reach(p)) * factor;
 
   const onTable = s.glasses.filter((g) => !g.fallen);
-  const bodies: Body[] = [
-    ...onTable.map((g) => ({ x: g.x, y: g.y, vx: 0, vy: 0, fallen: false })),
-    { x: lane, y: START_Y, vx: 0, vy: v0, fallen: false },
+  const glass = { r: GLASS_RADIUS, m: 1, friction: FRICTION };
+  const bodies = [
+    ...onTable.map((g) => body({ ...glass, x: g.x, y: g.y })),
+    body({ ...glass, x: lane, y: START_Y, vy: v0 }),
   ];
   const ids = [...onTable.map((g) => g.playerId), playerId];
-  const frames = simulate(bodies);
+  const frames = simulate(bodies, {
+    isOut: (b) => isOffTable(b.x, b.y),
+    restitution: RESTITUTION,
+  });
 
   const moved = new Map(
     bodies.map((b, i) => [
       ids[i],
-      { playerId: ids[i], x: round1(b.x), y: round1(b.y), fallen: b.fallen },
+      { playerId: ids[i], x: round1(b.x), y: round1(b.y), fallen: b.out },
     ]),
   );
   s.glasses = [...s.glasses.filter((g) => g.fallen), ...moved.values()];

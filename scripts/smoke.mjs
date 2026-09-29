@@ -46,7 +46,8 @@ console.log("players", host.room.players.map((p) => `${p.name}(${p.character})`)
 send(host, { type: "room.start" });
 
 const houses = ["straw", "wood", "brick"];
-for (let step = 0; step < 200 && host.room.phase !== "result"; step++) {
+// 投げる系は1投ごとに数秒の演出があり、延長戦もあるので長めに待つ（最大90秒）
+for (let step = 0; step < 600 && host.room.phase !== "result"; step++) {
   await wait(150);
   for (const c of clients) {
     const g = c.game;
@@ -89,6 +90,17 @@ for (let step = 0; step < 200 && host.room.phase !== "result"; step++) {
         }
         case "glass-slide":
           action = { type: "slide", x: 20 + Math.random() * 60, power: 60 + Math.random() * 25 };
+          break;
+        case "bowling":
+          action = {
+            type: "roll",
+            x: 20 + Math.random() * 20,
+            angle: Math.random() * 4 - 2,
+            power: 60,
+          };
+          break;
+        case "beer-pong":
+          action = { type: "throw", angle: Math.random() * 4 - 2, power: 60 + Math.random() * 10 };
           break;
         case "hundred-one": {
           const card = view.hand[0];

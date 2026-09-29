@@ -3,11 +3,11 @@ import {
   glassSlide,
   reach,
   shotDurationMs,
-  simulate,
   START_Y,
   TABLE_LENGTH,
   type GlassSlideState,
 } from "../glass-slide";
+import { body, simulate } from "../physics";
 import { GameError } from "../types";
 import { ctxAt, fixedCtx } from "./helpers";
 
@@ -32,9 +32,10 @@ function play(s: GlassSlideState, p: string, x: number, power: number) {
 
 /** 止まっているグラスに斜めから当てる配置 */
 const collisionBodies = () => [
-  { x: 50, y: 150, vx: 0, vy: 0, fallen: false },
-  { x: 47, y: 10, vx: 0, vy: 180, fallen: false },
+  body({ x: 50, y: 150, r: 5, m: 1, friction: 100 }),
+  body({ x: 47, y: 10, vy: 180, r: 5, m: 1, friction: 100 }),
 ];
+const opts = { isOut: () => false, restitution: 0.85 };
 
 const powerFor = (distanceFromEdge: number) => (TABLE_LENGTH - distanceFromEdge - START_Y) / 2.4;
 
@@ -94,7 +95,7 @@ describe("グラスすべらせ", () => {
   });
 
   it("物理計算は同じ入力なら同じ軌跡になる", () => {
-    expect(simulate(collisionBodies())).toEqual(simulate(collisionBodies()));
+    expect(simulate(collisionBodies(), opts)).toEqual(simulate(collisionBodies(), opts));
   });
 
   it("誰も落ちなければ一番遠い人の負け", () => {

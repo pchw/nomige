@@ -45,4 +45,9 @@ describe("詳しいルール", () => {
     expect(text("minesweeper", { mines: "normal" })).toContain("6×8");
     expect(text("glass-slide", { wobble: "high" })).toContain("今の設定：大きい");
   });
+
+  it("ボウリング・ビアポン：設定が文面に出る", () => {
+    expect(text("bowling", { wobble: "low" })).toContain("今の設定：小さい");
+    expect(text("beer-pong", { wobble: "high" })).toContain("今の設定：大きい");
+  });
 });

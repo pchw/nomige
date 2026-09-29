@@ -2,7 +2,6 @@ import { useState } from "react";
 import { CHARACTERS } from "~/games/characters";
 import {
   distanceToEdge,
-  FRAME_MS,
   GLASS_RADIUS,
   POWER_MAX,
   reach,
@@ -15,6 +14,7 @@ import {
   type GlassSlideTableView,
 } from "~/games/glass-slide";
 import type { PlayerId } from "~/games/types";
+import { frameAt } from "~/games/physics";
 import { PlayerChip, useNow, type PlayerMap } from "../ui";
 import type { GameUIProps } from "./types";
 
@@ -33,11 +33,7 @@ interface Pos {
 function positionsAt(table: GlassSlideTableView, now: number): Pos[] {
   const shot = table.shot;
   if (table.phase !== "sliding" || !shot) return table.glasses;
-  const i = Math.min(
-    shot.frames.length - 1,
-    Math.max(0, Math.floor((now - shot.startedAt) / FRAME_MS)),
-  );
-  const frame = shot.frames[i];
+  const frame = frameAt(shot.frames, now - shot.startedAt);
   // 前の手番までに落ちたグラスは軌跡に含まれないので、そのまま描く
   const before = table.glasses.filter((g) => !shot.ids.includes(g.playerId));
   return [

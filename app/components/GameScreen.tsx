@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { GAMES } from "~/games/registry";
 import type { GameId, PlayerId } from "~/games/types";
 import type { ClientMessage, GameView, RoomView } from "~/protocol";
+import { BeerPongUI } from "./games/BeerPongUI";
+import { BowlingUI } from "./games/BowlingUI";
 import { GlassSlideUI } from "./games/GlassSlideUI";
 import { GreedyDiceUI } from "./games/GreedyDiceUI";
 import { HighLowUI } from "./games/HighLowUI";
@@ -23,6 +25,8 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "greedy-dice": GreedyDiceUI,
   minesweeper: MinesweeperUI,
   "glass-slide": GlassSlideUI,
+  bowling: BowlingUI,
+  "beer-pong": BeerPongUI,
 };
 
 interface Props {

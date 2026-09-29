@@ -57,4 +57,16 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1〜2分",
     style: "手番制・力加減",
   },
+  bowling: {
+    emoji: "🎳",
+    color: "var(--teal)",
+    duration: "1〜2分",
+    style: "手番制・狙い",
+  },
+  "beer-pong": {
+    emoji: "🏓",
+    color: "var(--coral)",
+    duration: "1〜3分",
+    style: "勝ち抜け・狙い",
+  },
 };

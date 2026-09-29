@@ -695,6 +695,161 @@ function glassScenes(): Scene[] {
   ];
 }
 
+function bowlingScenes(): Scene[] {
+  const pinRows = [[0], [1, 2], [3, 4, 5], [6, 7, 8, 9]].toReversed();
+  const rack = (down: number[] = [], d = 0.9) => (
+    <div className="ra-col ra-col-tight">
+      {pinRows.map((row) => (
+        <div key={row[0]} className="ra-row ra-row-tight">
+          {row.map((i) => (
+            <span
+              key={i}
+              className={`ra-pin ${down.includes(i) ? "ra-pin-down" : ""}`}
+              style={down.includes(i) ? delay(d + (9 - i) * 0.05) : undefined}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+  return [
+    {
+      caption: "1人1投だけ投げる",
+      sub: "位置・方向・強さを決める",
+      body: (
+        <div className="ra-col">
+          {rack()}
+          <span className="ra-roll">🎳</span>
+        </div>
+      ),
+    },
+    {
+      caption: "強いほどぶれる",
+      sub: "ピンは飛ぶけど狙いがずれる",
+      body: (
+        <div className="ra-row">
+          <span className="ra-fan ra-fan-narrow">弱</span>
+          <span className="ra-fan ra-fan-wide ra-pop" style={delay(0.6)}>
+            強
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "当たって動けば倒れた",
+      sub: "レーンに残っても1本",
+      body: (
+        <div className="ra-row">
+          {rack([0, 2, 5], 0.6)}
+          <span className="ra-tag ra-pop" style={delay(1.3)}>
+            3本！
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "倒した本数で勝負",
+      sub: "両側の溝に落ちたら0本",
+      body: (
+        <div className="ra-row">
+          {rack([0, 1, 2, 4, 5, 8, 9])}
+          <span className="ra-tag ra-pop" style={delay(1.4)}>
+            7本！
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "一番少ない人が負け",
+      sub: "並んだら、その人たちで延長戦",
+      body: (
+        <div className="ra-results">
+          {(
+            [
+              ["cat", "9本"],
+              ["dog", "4本"],
+              ["rabbit", "7本"],
+            ] as const
+          ).map(([c, score], i) => (
+            <span key={c} className="ra-result ra-pop" style={delay(0.2 + i * 0.4)}>
+              <Avatar character={c} size="sm" />
+              <b>{score}</b>
+              {c === "dog" && <span>🍺</span>}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+  ];
+}
+
+/** ルール説明用のカップの並び（奥が上） */
+function CupRack({ taken = [], sink }: { taken?: number[]; sink?: number }) {
+  return (
+    <div className="ra-col ra-col-tight">
+      {[[6, 7, 8, 9], [3, 4, 5], [1, 2], [0]].map((row) => (
+        <div key={row[0]} className="ra-row ra-row-tight">
+          {row.map((i) => (
+            <span
+              key={i}
+              className={`ra-cup ${taken.includes(i) ? "ra-cup-taken" : ""} ${i === sink ? "ra-cup-sink" : ""}`}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function beerPongScenes(): Scene[] {
+  return [
+    {
+      caption: "カップを狙って投げる",
+      sub: "方向と強さを決める",
+      body: (
+        <div className="ra-col">
+          <CupRack />
+          <span className="ra-throw">⚪</span>
+        </div>
+      ),
+    },
+    {
+      caption: "入ったら抜けてセーフ",
+      sub: "入ったカップは片付ける",
+      body: (
+        <div className="ra-row">
+          <CupRack sink={1} />
+          <span className="ra-col ra-col-tight ra-hop" style={delay(1)}>
+            <Avatar character="cat" size="md" />
+            <span className="ra-tag">セーフ</span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      caption: "外れたら次の周へ",
+      sub: "カップはだんだん減っていく",
+      body: (
+        <div className="ra-row">
+          <CupRack taken={[1, 4, 8]} />
+          <Who c="dog" label="もう1回" />
+        </div>
+      ),
+    },
+    {
+      caption: "最後の1人が負け",
+      body: (
+        <div className="ra-row">
+          <Avatar character="rabbit" size="lg" />
+          <span className="ra-beer ra-pop" style={delay(0.6)}>
+            🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -713,6 +868,10 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return minesweeperScenes();
     case "glass-slide":
       return glassScenes();
+    case "bowling":
+      return bowlingScenes();
+    case "beer-pong":
+      return beerPongScenes();
   }
 }
 
