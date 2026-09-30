@@ -123,7 +123,7 @@ export const greedyDice: GameDefinition<
   id: "greedy-dice",
   name: "欲張りサイコロ",
   tagline: "好きなだけ振って点を貯める。1が出たら0点。一番低い人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   publicBoard: true,
   defaultConfig: { dice: 1 },

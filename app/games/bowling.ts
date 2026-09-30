@@ -274,7 +274,7 @@ export const bowling: GameDefinition<
   id: "bowling",
   name: "ボウリング",
   tagline: "1人1投。倒したピンが一番少ない人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   publicBoard: true,
   defaultConfig: { wobble: "normal" },

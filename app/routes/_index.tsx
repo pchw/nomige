@@ -35,7 +35,7 @@ export default function Home() {
             NOMI<span>GE</span>
           </h1>
           <p className="hero-lead">
-            3〜10人で遊べる飲みゲー。
+            2〜10人で遊べる飲みゲー。
             <br />
             テーブルにタブレット1台でも、各自のスマホでもOK。
           </p>

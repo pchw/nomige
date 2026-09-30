@@ -152,7 +152,7 @@ export const liarsDice: GameDefinition<
   id: "liars-dice",
   name: "ライアーダイス",
   tagline: "全員のサイコロの出目を予想して宣言を吊り上げ、嘘だと思ったらダウト",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 8,
   defaultConfig: { onesWild: true, dicePerPlayer: "auto", showHint: false },
   configFields: [

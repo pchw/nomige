@@ -166,7 +166,7 @@ export const highLow: GameDefinition<
   id: "high-low",
   name: "ハイロー",
   tagline: "次のカードを全員で予想。当てた人から抜け、最後の1人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   defaultConfig: { stages: "rideTheBus" },
   configFields: [

@@ -82,7 +82,7 @@ function liarsDice(config: Config): RuleDoc {
   const wild = config.onesWild !== false;
   const dice =
     config.dicePerPlayer === "auto" || config.dicePerPlayer === undefined
-      ? "3〜5人なら5個、6〜8人なら3個"
+      ? "2〜5人なら5個、6〜8人なら3個"
       : `${config.dicePerPlayer}個`;
   return {
     goal: "全員のサイコロを合わせて「〇の目が△個以上ある」と宣言を吊り上げていく。嘘だと思ったら「ダウト！」。外した方の負け。",
@@ -430,7 +430,7 @@ function minesweeper(config: Config): RuleDoc {
         table: {
           head: ["人数", "盤", "地雷"],
           rows: [
-            ["3〜5人", 3],
+            ["2〜5人", 3],
             ["6〜10人", 6],
           ].map(([people, count]) => {
             const b = boardSize(count as number, mines);

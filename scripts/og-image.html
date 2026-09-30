@@ -3,7 +3,8 @@
   OGP 画像（public/og.png, 1200x630）の元データ。
   作り直すときはホストで次を実行する:
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
-      --hide-scrollbars --window-size=1200,630 --screenshot=public/og.png scripts/og-image.html
+      --hide-scrollbars --window-size=1200,630 --virtual-time-budget=10000 \
+      --screenshot=public/og.png scripts/og-image.html
 -->
 <html lang="ja">
   <head>
@@ -109,7 +110,7 @@
   <body>
     <div class="kicker">PARTY DRINKING GAMES</div>
     <h1>NOMI<span>GE</span></h1>
-    <div class="lead">3〜10人で遊べる飲みゲー<br />スマホでもタブレット1台でも</div>
+    <div class="lead">2〜10人で遊べる飲みゲー<br />スマホでもタブレット1台でも</div>
     <div class="chips">
       <div class="chip" style="background: var(--pink)">🐺</div>
       <div class="chip" style="background: var(--yellow)">🐱</div>

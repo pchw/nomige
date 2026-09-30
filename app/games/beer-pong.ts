@@ -248,7 +248,7 @@ export const beerPong: GameDefinition<
   id: "beer-pong",
   name: "ビアポン",
   tagline: "カップにボールを入れた人から抜ける。最後まで入れられなかった人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   publicBoard: true,
   defaultConfig: { wobble: "normal" },

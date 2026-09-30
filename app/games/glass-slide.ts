@@ -195,7 +195,7 @@ export const glassSlide: GameDefinition<
   id: "glass-slide",
   name: "グラスすべらせ",
   tagline: "テーブルの端ギリギリを狙ってグラスを滑らせる。一番遠い人か落とした人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   publicBoard: true,
   defaultConfig: { wobble: "normal" },

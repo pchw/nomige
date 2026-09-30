@@ -153,7 +153,7 @@ export const hundredOne: GameDefinition<
   id: "hundred-one",
   name: "101",
   tagline: "手札を出して合計を増やし、101を超えさせた人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   defaultConfig: { limit: 101 },
   configFields: [

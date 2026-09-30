@@ -153,7 +153,7 @@ export const minesweeper: GameDefinition<
   id: "minesweeper",
   name: "地雷原",
   tagline: "順番にマスを1つ開ける。地雷を踏んだ人が負け",
-  minPlayers: 3,
+  minPlayers: 2,
   maxPlayers: 10,
   publicBoard: true,
   defaultConfig: { mines: "normal" },

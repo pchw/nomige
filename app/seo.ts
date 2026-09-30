@@ -1,7 +1,7 @@
 import type { MetaDescriptor } from "react-router";
 
 export const SITE_NAME = "NOMIGE";
-export const SITE_DESCRIPTION = "3〜10人で遊べる飲みゲー。スマホでもタブレット1台でも。";
+export const SITE_DESCRIPTION = "2〜10人で遊べる飲みゲー。スマホでもタブレット1台でも。";
 
 /** root の loader が返すサイトの origin を取り出す（OGP の URL は絶対パスでないと読まれない） */
 export function siteOrigin(
@@ -37,7 +37,7 @@ export function pageMeta({
     { property: "og:image", content: image },
     { property: "og:image:width", content: "1200" },
     { property: "og:image:height", content: "630" },
-    { property: "og:image:alt", content: "NOMIGE — 3〜10人で遊べる飲みゲー" },
+    { property: "og:image:alt", content: "NOMIGE — 2〜10人で遊べる飲みゲー" },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
