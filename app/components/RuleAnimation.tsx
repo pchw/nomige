@@ -850,6 +850,78 @@ function beerPongScenes(): Scene[] {
   ];
 }
 
+/** ルール説明用の4つのグラス。owners はグラスごとの持ち主 */
+function Glasses({
+  owners = [],
+  poison,
+  shake,
+  popFrom,
+}: {
+  owners?: (AnimalId | null)[];
+  poison?: number;
+  shake?: boolean;
+  /** このグラス以降の持ち主を順に出す */
+  popFrom?: number;
+}) {
+  return (
+    <div className={`ra-row ra-roulette ${shake ? "roulette-drumroll" : ""}`}>
+      {[0, 1, 2, 3].map((i) => {
+        const owner = owners[i] ?? null;
+        const done = poison !== undefined;
+        const cls = [
+          "roulette-glass",
+          owner ? "roulette-taken" : "",
+          done ? (i === poison ? "roulette-poison" : "roulette-safe") : "",
+        ].join(" ");
+        const pop = popFrom !== undefined && i >= popFrom;
+        return (
+          <span key={i} className={cls} style={done && i === poison ? delay(0.4) : undefined}>
+            <span className="roulette-drink">{done && i === poison ? "💀" : "🥃"}</span>
+            <span
+              className={`roulette-owner ${pop ? "ra-pop" : ""}`}
+              style={pop ? delay(0.3 + (i - popFrom) * 0.7) : undefined}
+            >
+              {owner ? <Avatar character={owner} size="sm" /> : "?"}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+const ROULETTE_OWNERS: AnimalId[] = ["cat", "dog", "rabbit", "bear"];
+
+function russianRouletteScenes(): Scene[] {
+  return [
+    {
+      caption: "人数分のグラス",
+      sub: "どれか1つだけハズレ",
+      body: <Glasses />,
+    },
+    {
+      caption: "順番に1つ選ぶ",
+      sub: "最後の人は残った1つ",
+      body: <Glasses owners={ROULETTE_OWNERS} popFrom={0} />,
+    },
+    {
+      caption: "全員選んだら開示",
+      body: <Glasses owners={ROULETTE_OWNERS} shake />,
+    },
+    {
+      caption: "ハズレを引いたら負け",
+      body: (
+        <div className="ra-col">
+          <Glasses owners={ROULETTE_OWNERS} poison={2} />
+          <span className="ra-beer ra-pop" style={delay(1.2)}>
+            アウト🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -872,6 +944,8 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return bowlingScenes();
     case "beer-pong":
       return beerPongScenes();
+    case "russian-roulette":
+      return russianRouletteScenes();
   }
 }
 

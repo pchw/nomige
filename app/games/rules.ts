@@ -620,6 +620,44 @@ function beerPong(config: Config): RuleDoc {
   };
 }
 
+function russianRoulette(): RuleDoc {
+  return {
+    goal: "人数分のグラスのうち1つだけがハズレ。順番にグラスを選び、全員が選び終えたら開示。ハズレを引いた人の負け。",
+    sections: [
+      {
+        title: "流れ",
+        steps: [
+          "グラスは参加人数と同じ数。どれか1つがハズレ（誰にも見えない）。",
+          "最初の人はランダム、あとは席順で、まだ選ばれていないグラスを1つ選ぶ。",
+          "最後の人には、残った1つが自動で配られる。",
+          "全員が選び終えたら、ハズレのグラスを開示。引いた人の負け。",
+        ],
+      },
+      {
+        title: "例",
+        example: [
+          "4人なら 4つのグラスのうち1つがハズレ。",
+          "3人が選んだあと、最後の人は残った1つに決まる。",
+        ],
+      },
+      {
+        title: "運だけ？",
+        items: [
+          "ハズレを引く確率は、何番目に選んでも同じ（人数分の1）。",
+          "先に選んで運命を決めるか、残り物に福を願うか。選ぶ瞬間と開示の瞬間を楽しもう。",
+        ],
+      },
+      {
+        title: "みんなで見る",
+        items: [
+          "ハズレの位置は誰にも見えない。タブレット1台をテーブルに置いたまま、手番の人がそのまま操作する。",
+          "グラスをタップするとすぐに決まる。",
+        ],
+      },
+    ],
+  };
+}
+
 const BUILDERS: Record<GameId, (config: Config) => RuleDoc> = {
   "hundred-one": hundredOne,
   "liars-dice": liarsDice,
@@ -631,6 +669,7 @@ const BUILDERS: Record<GameId, (config: Config) => RuleDoc> = {
   "glass-slide": glassSlide,
   bowling,
   "beer-pong": beerPong,
+  "russian-roulette": russianRoulette,
 };
 
 export function rulesFor(gameId: GameId, config: Config): RuleDoc {
@@ -644,6 +683,6 @@ export const COMMON_RULES: RuleSection = {
     "制限時間はない。全員（手番制なら手番の人）が選ぶまで待つ。",
     "誰も操作しないまま30秒たつと「おまかせで進める」が出る。2回押すと、待っている人の分をアプリが選んで進める。",
     "負けた人はパス権を1回だけ使える（結果画面で「パス権を使う」）。",
-    "タブレット1台で遊ぶときは、自分の番に「自分です（タップで表示）」を押して手元を見る。欲張りサイコロ・地雷原・グラスすべらせ・ボウリング・ビアポンは隠し情報がないので、そのまま操作する。",
+    "タブレット1台で遊ぶときは、自分の番に「自分です（タップで表示）」を押して手元を見る。欲張りサイコロ・地雷原・グラスすべらせ・ボウリング・ビアポン・ロシアンルーレットは手元に隠す情報がないので、そのまま操作する。",
   ],
 };

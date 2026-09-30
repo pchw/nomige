@@ -69,4 +69,10 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1〜3分",
     style: "勝ち抜け・狙い",
   },
+  "russian-roulette": {
+    emoji: "🥃",
+    color: "var(--lime)",
+    duration: "1分",
+    style: "手番制・運",
+  },
 };

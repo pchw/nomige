@@ -10,7 +10,8 @@ export type GameId =
   | "minesweeper"
   | "glass-slide"
   | "bowling"
-  | "beer-pong";
+  | "beer-pong"
+  | "russian-roulette";
 
 export interface Ctx {
   /** サーバー時刻 (ms) */
