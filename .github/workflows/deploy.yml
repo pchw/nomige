@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # Actions タブから手動で再デプロイするとき用
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# デプロイは 1 つずつ順番に。実行中のものは中断しない
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # ブランチ保護をすり抜けたコミットでも壊れたものを出さないよう、デプロイ前にもう一度確認する
+      - name: Check
+        run: |
+          npm run lint
+          npm run format:check
+          npm run typecheck
+          npm test
+
+      - name: Deploy to Cloudflare Workers
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+
+      # PRODUCTION_URL を登録したときだけ本番に対して 1 ラウンド通す（作ったルームは 24 時間後に消える）
+      - name: Smoke test
+        if: vars.PRODUCTION_URL != ''
+        # スクリプトが固まっても次のデプロイを長く待たせない
+        timeout-minutes: 3
+        run: node scripts/smoke.mjs wolf-and-pigs
+        env:
+          BASE_URL: ${{ vars.PRODUCTION_URL }}

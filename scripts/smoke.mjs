@@ -1,6 +1,7 @@
 // 開発サーバーに対して、ルーム作成 → 複数端末の参加 → 1ラウンドのプレイまでを通しで確認する
 // 使い方（コンテナ内）: node scripts/smoke.mjs [gameId]
-const BASE = process.env.BASE_URL ?? "http://localhost:8787";
+// 末尾の "/" は落としておく（付いていると "//api/..." になって失敗する）
+const BASE = (process.env.BASE_URL ?? "http://localhost:8787").replace(/\/+$/, "");
 const gameId = process.argv[2] ?? "wolf-and-pigs";
 
 const res = await fetch(`${BASE}/?index`, {
@@ -14,14 +15,28 @@ if (!code) throw new Error(`room not created: ${res.status}`);
 console.log("room", code);
 
 function connect(name) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const ws = new WebSocket(`${BASE.replace("http", "ws")}/api/rooms/${code}/ws`);
     const client = { ws, name, room: null, game: null, deviceId: null, errors: [] };
+    // 接続できない・welcome が来ないときは待ち続けずに失敗させる
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error(`${name}: welcome not received`));
+    }, 10_000);
+    const fail = () => {
+      clearTimeout(timer);
+      reject(new Error(`${name}: websocket closed before welcome`));
+    };
+    ws.addEventListener("error", fail);
+    ws.addEventListener("close", fail);
     ws.addEventListener("open", () => ws.send(JSON.stringify({ type: "hello" })));
     ws.addEventListener("message", (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "welcome") {
         client.deviceId = msg.deviceId;
+        clearTimeout(timer);
+        ws.removeEventListener("error", fail);
+        ws.removeEventListener("close", fail);
         resolve(client);
       }
       if (msg.type === "room") client.room = msg.room;

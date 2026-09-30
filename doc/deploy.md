@@ -97,6 +97,41 @@ Deployed nomige triggers
 
 初回は Durable Object のマイグレーション `v1`（`Room` クラスの作成）がここで適用される。2 回目以降は適用済みなのでスキップされる。
 
+### GitHub Actions による自動デプロイ
+
+main に PR がマージされると `.github/workflows/deploy.yml` が走り、lint・format・typecheck・test を通したあと `npm run deploy` を実行する。
+PR を作ったときは `.github/workflows/ci.yml` で同じチェックだけを実行する。
+
+#### 初回の設定
+
+1. **Cloudflare の API トークンを作る**
+   1. https://dash.cloudflare.com/profile/api-tokens で「Create Token」を押し、「Edit Cloudflare Workers」の「Use template」を押す
+   2. 次のように設定する。**Permissions（権限の一覧）は変更しなくてよい**
+
+      | 欄 | 設定 |
+      | --- | --- |
+      | Token name | `nomige GitHub Actions deploy` など |
+      | Permissions | 変更しない |
+      | Account Resources | `Include` → 自分のアカウント（All accounts のままにしない） |
+      | Zone Resources | `Include` → `All zones from an account` → 自分のアカウント |
+      | Client IP Address Filtering | 空欄（GitHub Actions の IP は毎回変わる） |
+      | TTL | 空欄、または期限を付ける（切れる前に作り直して Secret を差し替える） |
+
+   3. 「Continue to summary」→「Create Token」。トークンはこの画面でしか表示されないので、そのまま次の手順で GitHub に登録する
+2. **GitHub の Settings → Environments で `production` を作り**、次を登録する
+   - Secrets: `CLOUDFLARE_API_TOKEN`（上で作ったトークン）、`CLOUDFLARE_ACCOUNT_ID`（`wrangler whoami` で表示される ID）
+   - Variables（任意）: `PRODUCTION_URL` = `https://nomige.<your-subdomain>.workers.dev`。登録するとデプロイ後にスモークテストが本番に対して走る
+   - Deployment branches を `main` のみにする
+3. **Settings → Rules（または Branches）で main を保護する**
+   - マージには PR を必須にする（直接 push を禁止）
+   - ステータスチェック `check`（CI ワークフロー）の成功を必須にする
+
+#### 運用
+
+- 手動で再デプロイしたいときは Actions タブの「Deploy」から「Run workflow」を押す
+- デプロイ後に問題が見つかったら、手元から `npx wrangler rollback` で 1 つ前に戻し、修正 PR をマージし直す
+- `wrangler.jsonc` の `migrations` に追加したタグは、**マージした時点で本番に適用される**。クラスを削除する変更（`deleted_classes`）はデータが消えるので特に慎重にレビューする
+
 ## 4. 動作確認
 
 ブラウザで表示された URL を開き、ルームを作ってスマホなど別端末から参加できるか確認する。
