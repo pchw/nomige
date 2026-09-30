@@ -5,13 +5,11 @@ import { fail, type Ctx, type GameDefinition, type PlayerId, type Step } from ".
 export interface KabuttaraOutConfig {
   animalCount: "auto" | number;
   spoilers: boolean;
-  strayAnimal: boolean;
 }
 
 export interface KabuttaraReveal {
   round: number;
   picks: Record<PlayerId, AnimalId>;
-  stray: AnimalId | null;
   collided: PlayerId[];
   exited: PlayerId[];
   retry: boolean;
@@ -20,7 +18,6 @@ export interface KabuttaraReveal {
 export interface KabuttaraOutState {
   phase: "picking" | "revealing" | "done";
   spoilers: boolean;
-  strayAnimal: boolean;
   round: number;
   animals: AnimalId[];
   players: PlayerId[];
@@ -67,16 +64,24 @@ function decided(s: KabuttaraOutState, p: PlayerId): boolean {
   return Boolean(s.picks[p]) || s.skipped.includes(p);
 }
 
-/** 残っている人のうち、誰とも（のら動物とも）被らなかった人 */
-export function findUnique(
-  remaining: PlayerId[],
-  picks: Record<PlayerId, AnimalId>,
-  stray: AnimalId | null,
-): PlayerId[] {
+/** 残っている人のうち、誰とも被らなかった人 */
+export function findUnique(remaining: PlayerId[], picks: Record<PlayerId, AnimalId>): PlayerId[] {
   const counts = new Map<AnimalId, number>();
   for (const a of Object.values(picks)) counts.set(a, (counts.get(a) ?? 0) + 1);
-  if (stray) counts.set(stray, (counts.get(stray) ?? 0) + 1);
   return remaining.filter((p) => picks[p] && counts.get(picks[p]) === 1);
+}
+
+/**
+ * 残り2人だけで選ぶと「被る＝2人とも残る」「被らない＝やり直し」で決着がつかない。
+ * 片方だけを被らせられるのはおじゃま役だけなので、おじゃま役が選ばないならルーレットで決める。
+ */
+function stalemateReason(s: KabuttaraOutState, reveal: KabuttaraReveal | null): string | null {
+  if (s.remaining.length !== 2) return null;
+  if (!s.spoilers) return "残り2人になったのでルーレット";
+  // 前の回も2人で、おじゃま役が誰も選ばなかった
+  const spoiled = Object.keys(reveal?.picks ?? {}).some((p) => !s.remaining.includes(p));
+  if (reveal && reveal.exited.length === 0 && !spoiled) return "おじゃまが入らずルーレット";
+  return null;
 }
 
 function startPicking(s: KabuttaraOutState): Step<KabuttaraOutState> {
@@ -88,14 +93,13 @@ function startPicking(s: KabuttaraOutState): Step<KabuttaraOutState> {
 
 function close(state: KabuttaraOutState, ctx: Ctx): Step<KabuttaraOutState> {
   const s = structuredClone(state);
-  const stray = s.strayAnimal ? pick(ctx.random, s.animals) : null;
-  const unique = findUnique(s.remaining, s.picks, stray);
+  const unique = findUnique(s.remaining, s.picks);
   const retry = unique.length === s.remaining.length;
   const exited = retry ? [] : unique;
   const collided = s.remaining.filter((p) => !unique.includes(p));
   s.remaining = s.remaining.filter((p) => !exited.includes(p));
   s.exited.push(...exited.map((playerId) => ({ playerId, round: s.round })));
-  s.lastReveal = { round: s.round, picks: s.picks, stray, collided, exited, retry };
+  s.lastReveal = { round: s.round, picks: s.picks, collided, exited, retry };
   s.phase = "revealing";
   return {
     state: s,
@@ -116,7 +120,8 @@ export const kabuttaraOut: GameDefinition<
   tagline: "動物を1匹選ぶ。誰とも被らなかった人から抜け、最後の1人が負け",
   minPlayers: 3,
   maxPlayers: 10,
-  defaultConfig: { animalCount: "auto", spoilers: true, strayAnimal: true },
+  directHotseat: true,
+  defaultConfig: { animalCount: "auto", spoilers: true },
   configFields: [
     {
       key: "animalCount",
@@ -134,14 +139,6 @@ export const kabuttaraOut: GameDefinition<
         { value: false, label: "OFF" },
       ],
     },
-    {
-      key: "strayAnimal",
-      label: "のら動物",
-      options: [
-        { value: true, label: "ON" },
-        { value: false, label: "OFF" },
-      ],
-    },
   ],
 
   setup(players, config, ctx) {
@@ -153,7 +150,6 @@ export const kabuttaraOut: GameDefinition<
     const s: KabuttaraOutState = {
       phase: "picking",
       spoilers: config.spoilers,
-      strayAnimal: config.strayAnimal,
       round: 1,
       animals,
       players,
@@ -196,14 +192,15 @@ export const kabuttaraOut: GameDefinition<
           result: { losers: s.remaining, reason: `${s.round}回目まで被り続けた` },
         };
       }
-      const stalemate = !s.spoilers && !s.strayAnimal && s.remaining.length === 2;
-      if (s.round >= MAX_ROUND || stalemate) {
+      const reason =
+        s.round >= MAX_ROUND ? "決着がつかずルーレット" : stalemateReason(s, state.lastReveal);
+      if (reason) {
         s.phase = "done";
         const tb = tieBreak(ctx.random, s.remaining);
         return {
           state: s,
           timer: null,
-          result: { losers: [tb.chosen], reason: "決着がつかずルーレット", tieBreak: tb },
+          result: { losers: [tb.chosen], reason, tieBreak: tb },
         };
       }
       s.round++;

@@ -76,6 +76,12 @@ export interface GameDefinition<C = any, S = any, A = any, TV = any, PV = any> {
    * 共有端末でも目隠し画面（ホットシート）を出さず、手番の人がそのまま操作する。
    */
   publicBoard?: boolean;
+  /**
+   * 手元に見る情報がなく、秘密なのは選ぶ操作だけのゲーム（全員同時に選ぶ）。
+   * 共有端末でも「自分です」を挟まず、選ぶ番の人の画面をそのまま出す。
+   * 次の人の画面に前の人の選択は出ないので、目隠しは要らない。
+   */
+  directHotseat?: boolean;
   defaultConfig: C;
   configFields: ConfigField[];
   setup(players: PlayerId[], config: C, ctx: Ctx): Step<S>;

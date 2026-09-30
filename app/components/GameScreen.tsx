@@ -82,6 +82,24 @@ export function GameScreen({ room, game, players, send, serverNow, boardOnly }: 
       </>
     );
   }
+  if (GAMES[game.gameId].directHotseat) {
+    const pending = localIds.filter((id) => game.pending.includes(id));
+    const me = pending[0] ?? null;
+    return (
+      <>
+        {waitBar}
+        <TurnCall players={players} pending={pending} />
+        {/* 人が替わったら選択中の状態を持ち越さない */}
+        <UI
+          key={me ?? ""}
+          {...common}
+          me={me}
+          view={me ? game.players[me] : null}
+          act={me ? act(me) : () => {}}
+        />
+      </>
+    );
+  }
   return (
     <>
       {waitBar}
@@ -94,6 +112,39 @@ export function GameScreen({ room, game, players, send, serverNow, boardOnly }: 
         act={act}
       />
     </>
+  );
+}
+
+/** 共有端末で、次に選ぶ人を大きく呼び出す */
+function TurnCall({ players, pending }: { players: PlayerMap; pending: PlayerId[] }) {
+  const next = pending[0] ? players.get(pending[0]) : undefined;
+  if (!next) {
+    return (
+      <section className="panel turn-call turn-call-idle">
+        <p className="turn-call-lead">この端末で選ぶ人はいません。待ちましょう</p>
+      </section>
+    );
+  }
+  return (
+    // 人が替わるたびに出し直して、交代に気づけるようにする
+    <section key={next.id} className="panel turn-call">
+      <p className="turn-call-name">
+        <Avatar character={next.character} size="lg" />
+        <span>
+          <strong>{next.name}</strong> さんの番
+        </span>
+      </p>
+      <p className="turn-call-lead">他の人は画面を見ないで</p>
+      {pending.length > 1 && (
+        <p className="turn-call-after">
+          このあと：
+          {pending
+            .slice(1)
+            .map((id) => players.get(id)?.name)
+            .join("、")}
+        </p>
+      )}
+    </section>
   );
 }
 

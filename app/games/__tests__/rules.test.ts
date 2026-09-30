@@ -33,9 +33,8 @@ describe("詳しいルール", () => {
 
   it("ハイロー・被ったらアウト・狼と子豚：設定が文面に出る", () => {
     expect(text("high-low", { stages: "highLowOnly" })).toContain("上か下かのみ");
-    expect(text("kabuttara-out", { spoilers: false, strayAnimal: false })).toContain(
-      "残り2人になった時点でルーレット",
-    );
+    expect(text("kabuttara-out", { spoilers: false })).toContain("残り2人になった時点でルーレット");
+    expect(text("kabuttara-out", { spoilers: true })).toContain("おじゃま役が誰も選ばず");
     expect(text("wolf-and-pigs", { runoffMiss: "retry" })).toContain("やり直し（今の設定）");
   });
 

@@ -60,10 +60,11 @@ export function KabuttaraOutUI({ table, view, me, players, act }: Props) {
               const pickers = Object.entries(reveal.picks)
                 .filter(([, v]) => v === a)
                 .map(([id]) => id);
-              const stray = reveal.stray === a;
-              const count = pickers.length + (stray ? 1 : 0);
               return (
-                <div key={a} className={`animal-cell ${count >= 2 ? "animal-cell-hit" : ""}`}>
+                <div
+                  key={a}
+                  className={`animal-cell ${pickers.length >= 2 ? "animal-cell-hit" : ""}`}
+                >
                   <span className="animal-emoji" style={{ background: CHARACTERS[a].color }}>
                     {CHARACTERS[a].emoji}
                   </span>
@@ -78,7 +79,6 @@ export function KabuttaraOutUI({ table, view, me, players, act }: Props) {
                         {players.get(id)?.name}
                       </span>
                     ))}
-                    {stray && <span className="stray">のら</span>}
                   </span>
                 </div>
               );
@@ -109,6 +109,9 @@ export function KabuttaraOutUI({ table, view, me, players, act }: Props) {
               </button>
             ))}
           </div>
+          {view.role === "spoiler" && table.remaining.length === 2 && (
+            <p className="muted small">残り2人：おじゃまが誰も入らなければルーレットで決まる</p>
+          )}
           {view.role === "spoiler" && (
             <button
               type="button"

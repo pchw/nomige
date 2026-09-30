@@ -168,6 +168,7 @@ export const highLow: GameDefinition<
   tagline: "次のカードを全員で予想。当てた人から抜け、最後の1人が負け",
   minPlayers: 2,
   maxPlayers: 10,
+  directHotseat: true,
   defaultConfig: { stages: "rideTheBus" },
   configFields: [
     {

@@ -35,15 +35,12 @@ describe("被ったらアウト", () => {
     expect(autoAnimalCount(10)).toBe(10);
   });
 
-  it("のら動物との被りも被り扱い", () => {
-    expect(findUnique(["a", "b"], { a: "cat", b: "dog" }, "cat")).toEqual(["b"]);
-    expect(findUnique(["a", "b"], { a: "cat", b: "dog", c: "dog" }, null)).toEqual(["a"]);
+  it("残っていない人（おじゃま役）の選択も数える", () => {
+    expect(findUnique(["a", "b"], { a: "cat", b: "dog", c: "dog" })).toEqual(["a"]);
   });
 
   it("被らなかった人が抜ける", () => {
-    // random=0.99 → のら動物は animals の末尾 (fox)
     const step = pickAll(setup(), { a: "cat", b: "cat", c: "dog", d: "rabbit" });
-    expect(step.state.lastReveal?.stray).toBe("fox");
     expect(step.state.lastReveal?.exited).toEqual(["c", "d"]);
     expect(step.state.remaining).toEqual(["a", "b"]);
   });
@@ -97,18 +94,18 @@ describe("被ったらアウト", () => {
     let s = pickAll(setup({ spoilers: false }), {
       a: "cat",
       b: "cat",
-      c: "dog",
+      c: "cat",
       d: "rabbit",
     }).state;
     s = kabuttaraOut.onTimer(s, "reveal", ctxAt(0)).state;
-    expect(kabuttaraOut.pendingPlayers(s)).toEqual(["a", "b"]);
+    expect(kabuttaraOut.pendingPlayers(s)).toEqual(["a", "b", "c"]);
     expect(() =>
-      kabuttaraOut.applyAction(s, "c", { type: "pick", animal: "cat" }, ctxAt(0)),
+      kabuttaraOut.applyAction(s, "d", { type: "pick", animal: "cat" }, ctxAt(0)),
     ).toThrow(GameError);
   });
 
-  it("おじゃま役・のら動物なしで残り2人になったらルーレット", () => {
-    let s = pickAll(setup({ spoilers: false, strayAnimal: false }), {
+  it("おじゃま役なしで残り2人になったらルーレット", () => {
+    const s = pickAll(setup({ spoilers: false }), {
       a: "cat",
       b: "cat",
       c: "dog",
@@ -116,5 +113,29 @@ describe("被ったらアウト", () => {
     }).state;
     const step = kabuttaraOut.onTimer(s, "reveal", ctxAt(0));
     expect(step.result?.tieBreak?.candidates).toEqual(["a", "b"]);
+  });
+
+  it("残り2人でおじゃま役が誰も選ばず決着しなかったらルーレット", () => {
+    let s = pickAll(setup(), { a: "cat", b: "cat", c: "dog", d: "rabbit" }).state;
+    // ちょうど2人になった回はルーレットにしない
+    s = kabuttaraOut.onTimer(s, "reveal", ctxAt(0)).state;
+    expect(s.phase).toBe("picking");
+    s = kabuttaraOut.applyAction(s, "c", { type: "skip" }, ctxAt(0)).state;
+    s = kabuttaraOut.applyAction(s, "d", { type: "skip" }, ctxAt(0)).state;
+    s = pickAll(s, { a: "cat", b: "dog" }).state;
+    const step = kabuttaraOut.onTimer(s, "reveal", ctxAt(0));
+    expect(step.result?.tieBreak?.candidates).toEqual(["a", "b"]);
+    expect(step.result?.reason).toBe("おじゃまが入らずルーレット");
+  });
+
+  it("残り2人でもおじゃま役が選んだ回は続ける", () => {
+    let s = pickAll(setup(), { a: "cat", b: "cat", c: "dog", d: "rabbit" }).state;
+    s = kabuttaraOut.onTimer(s, "reveal", ctxAt(0)).state;
+    // おじゃま役が外して決着しなかった
+    s = pickAll(s, { a: "cat", b: "dog", c: "fox", d: "bear" }).state;
+    expect(s.lastReveal?.retry).toBe(true);
+    const step = kabuttaraOut.onTimer(s, "reveal", ctxAt(0));
+    expect(step.result).toBeUndefined();
+    expect(step.state.phase).toBe("picking");
   });
 });
