@@ -2,6 +2,7 @@ import { data, isRouteErrorResponse, useRouteError } from "react-router";
 import { RoomApp } from "~/components/RoomApp";
 import { GAMES } from "~/games/registry";
 import { normalizeCode, roomInfo } from "~/server/rooms.server";
+import { pageMeta, SITE_NAME, siteOrigin } from "~/seo";
 import type { Route } from "./+types/r.$code";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -12,10 +13,15 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { code, gameName: GAMES[info.gameId].name };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  return [
-    { title: loaderData ? `${loaderData.gameName} — ${loaderData.code} | NOMIGE` : "NOMIGE" },
-  ];
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  const origin = siteOrigin(matches);
+  if (!loaderData) return pageMeta({ origin, path: "/", title: SITE_NAME });
+  return pageMeta({
+    origin,
+    path: `/r/${loaderData.code}`,
+    title: `${loaderData.gameName} — ${loaderData.code} | NOMIGE`,
+    description: `「${loaderData.gameName}」のルーム（コード ${loaderData.code}）に招待されています。リンクを開くだけで参加できます。`,
+  });
 }
 
 export default function RoomPage({ loaderData }: Route.ComponentProps) {

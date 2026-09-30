@@ -4,13 +4,11 @@ import { accentStyle, GameCardBody } from "~/components/GamePicker";
 import { RulesButton, RulesProvider, type RulesTarget } from "~/components/Rules";
 import { GAME_ORDER, isGameId } from "~/games/registry";
 import { createRoom } from "~/server/rooms.server";
+import { pageMeta, siteOrigin } from "~/seo";
 import type { Route } from "./+types/_index";
 
-export function meta() {
-  return [
-    { title: "NOMIGE — 飲みゲー" },
-    { name: "description", content: "3〜10人で遊べる飲みゲー。スマホでもタブレット1台でも。" },
-  ];
+export function meta({ matches }: Route.MetaArgs) {
+  return pageMeta({ origin: siteOrigin(matches), path: "/", title: "NOMIGE — 飲みゲー" });
 }
 
 export async function action({ request }: Route.ActionArgs) {

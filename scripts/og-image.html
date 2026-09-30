@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  OGP 画像（public/og.png, 1200x630）の元データ。
+  作り直すときはホストで次を実行する:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+      --hide-scrollbars --window-size=1200,630 --screenshot=public/og.png scripts/og-image.html
+-->
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@700;900&display=block"
+    />
+    <style>
+      :root {
+        --ink: #111111;
+        --paper: #fff8e7;
+        --white: #ffffff;
+        --yellow: #ffe14d;
+        --pink: #ff7eb6;
+        --blue: #5ecbff;
+        --green: #8cf28c;
+        --orange: #ff9f43;
+        --purple: #b69cff;
+        --teal: #4fd1c5;
+        --coral: #ff8a80;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        box-sizing: border-box;
+        background-color: var(--paper);
+        background-image: radial-gradient(rgba(17, 17, 17, 0.14) 2px, transparent 2px);
+        background-size: 28px 28px;
+        border: 14px solid var(--ink);
+        color: var(--ink);
+        font-family: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+        font-weight: 900;
+        padding: 64px 64px;
+      }
+      .kicker {
+        display: inline-block;
+        background: var(--ink);
+        color: var(--yellow);
+        font-size: 28px;
+        letter-spacing: 0.18em;
+        padding: 8px 18px;
+        transform: rotate(-2deg);
+      }
+      h1 {
+        font-family: "Dela Gothic One", sans-serif;
+        font-weight: 400;
+        font-size: 140px;
+        line-height: 1;
+        margin: 40px 0 36px;
+        letter-spacing: -0.02em;
+        text-shadow: 12px 12px 0 var(--pink);
+      }
+      h1 span {
+        color: var(--white);
+        -webkit-text-stroke: 6px var(--ink);
+        text-shadow: 12px 12px 0 var(--blue);
+      }
+      .lead {
+        display: inline-block;
+        background: var(--yellow);
+        border: 5px solid var(--ink);
+        box-shadow: 10px 10px 0 var(--ink);
+        font-size: 40px;
+        line-height: 1.45;
+        padding: 14px 26px;
+      }
+      .chips {
+        position: absolute;
+        right: 64px;
+        top: 60px;
+        display: grid;
+        grid-template-columns: repeat(2, 104px);
+        gap: 18px;
+      }
+      .chip {
+        width: 104px;
+        height: 104px;
+        display: grid;
+        place-items: center;
+        border: 5px solid var(--ink);
+        border-radius: 18px;
+        box-shadow: 7px 7px 0 var(--ink);
+        font-size: 56px;
+        box-sizing: border-box;
+      }
+      .chip:nth-child(odd) {
+        transform: rotate(-4deg);
+      }
+      .chip:nth-child(even) {
+        transform: rotate(3deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="kicker">PARTY DRINKING GAMES</div>
+    <h1>NOMI<span>GE</span></h1>
+    <div class="lead">3〜10人で遊べる飲みゲー<br />スマホでもタブレット1台でも</div>
+    <div class="chips">
+      <div class="chip" style="background: var(--pink)">🐺</div>
+      <div class="chip" style="background: var(--yellow)">🐱</div>
+      <div class="chip" style="background: var(--blue)">🃏</div>
+      <div class="chip" style="background: var(--green)">🎲</div>
+      <div class="chip" style="background: var(--orange)">🍺</div>
+      <div class="chip" style="background: var(--purple)">🎳</div>
+      <div class="chip" style="background: var(--teal)">💣</div>
+      <div class="chip" style="background: var(--coral)">💯</div>
+    </div>
+  </body>
+</html>
