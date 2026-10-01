@@ -19,6 +19,7 @@
   --teal: #4fd1c5;
   --coral: #ff8a80;
   --lime: #c6f24a;
+  --sky: #a8e6ff;
   --muted: #5b5b5b;
   --line: 3px solid var(--ink);
   --line-thin: 2px solid var(--ink);
@@ -3240,6 +3241,223 @@ select {
   margin: 12px 0 6px;
   text-align: center;
   font-weight: bold;
+}
+
+/* ---------- あみだくじ ---------- */
+
+.btn-sky {
+  background: var(--sky);
+}
+
+.amida {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.amida-ends {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+}
+
+.amida-end {
+  display: grid;
+  place-items: center;
+  padding: 4px 0;
+}
+
+.amida-start,
+.amida-goal {
+  display: grid;
+  place-items: center;
+  width: min(40px, 100%);
+  aspect-ratio: 1;
+  padding: 0;
+  border: var(--line-thin);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.amida-start {
+  background: var(--sky);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.amida-start:disabled {
+  cursor: default;
+  box-shadow: none;
+}
+
+.amida-start-taken {
+  background: var(--white);
+}
+
+.amida-goal {
+  background: var(--white);
+  color: var(--muted);
+}
+
+.amida-hazure {
+  background: var(--red);
+  color: var(--ink);
+}
+
+.amida-hit {
+  box-shadow:
+    0 0 0 4px var(--yellow),
+    var(--shadow-sm);
+  animation: pop 400ms ease-out;
+}
+
+.amida-arrive {
+  display: grid;
+  animation: pop 400ms ease-out both;
+}
+
+.amida-body {
+  position: relative;
+}
+
+.amida-svg {
+  display: block;
+  overflow: visible;
+}
+
+.amida-pole,
+.amida-rung {
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.amida-rung-edge {
+  stroke-width: 9;
+}
+
+.amida-rung-fill {
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.amida-guide {
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 4 5;
+  opacity: 0.6;
+}
+
+.amida-slot {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.amida-slot:hover {
+  fill: rgba(17, 17, 17, 0.08);
+}
+
+.amida-path {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.amida-path-edge {
+  stroke: var(--ink);
+  stroke-width: 10;
+}
+
+/* たどり終えた人の線は細くして、今たどっている人の線を目立たせる */
+.amida-path-done .amida-path {
+  stroke-width: 4;
+}
+
+.amida-path-done .amida-path-edge {
+  stroke-width: 7;
+}
+
+.amida-path-anim .amida-path {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: amida-draw var(--draw-ms, 1500ms) linear forwards;
+}
+
+/* 線の先を一緒に進むアイコン */
+.amida-runner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  offset-rotate: 0deg;
+  offset-distance: 0%;
+  animation: amida-run var(--draw-ms, 1500ms) linear forwards;
+  pointer-events: none;
+}
+
+.amida-cover {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  border: var(--line);
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(-45deg, var(--sky) 0 14px, var(--white) 14px 28px);
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  transition:
+    transform 700ms ease-in,
+    opacity 700ms ease-in;
+}
+
+.amida-cover span {
+  padding: 2px 12px;
+  border: var(--line-thin);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+
+.amida-cover-open {
+  transform: translateY(40px) rotate(-3deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ra-amida {
+  width: 200px;
+}
+
+.ra-amida .amida-end {
+  padding: 2px 0;
+}
+
+.ra-amida .amida-start,
+.ra-amida .amida-goal {
+  width: 30px;
+  box-shadow: none;
+  cursor: default;
+}
+
+.amida-hint {
+  margin: 12px 0 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+@keyframes amida-run {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes amida-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ---------- Animations ---------- */

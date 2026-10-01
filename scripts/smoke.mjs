@@ -108,6 +108,20 @@ for (let step = 0; step < 600 && host.room.phase !== "result"; step++) {
           action = { type: "pick", glass: free[Math.floor(Math.random() * free.length)] };
           break;
         }
+        case "amidakuji": {
+          if (t.phase === "start") {
+            const free = t.startBy.flatMap((p, i) => (p === null ? [i] : []));
+            action = { type: "start", column: free[Math.floor(Math.random() * free.length)] };
+          } else {
+            const slots = [];
+            for (let row = 0; row < t.openRows; row++)
+              for (let gap = 0; gap < t.columns - 1; gap++)
+                if (!t.added.some((r) => r.row === row && Math.abs(r.gap - gap) <= 1))
+                  slots.push({ row, gap });
+            action = { type: "line", ...slots[Math.floor(Math.random() * slots.length)] };
+          }
+          break;
+        }
         case "glass-slide":
           action = { type: "slide", x: 20 + Math.random() * 60, power: 60 + Math.random() * 25 };
           break;

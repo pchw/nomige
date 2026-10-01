@@ -11,7 +11,8 @@ export type GameId =
   | "glass-slide"
   | "bowling"
   | "beer-pong"
-  | "russian-roulette";
+  | "russian-roulette"
+  | "amidakuji";
 
 export interface Ctx {
   /** サーバー時刻 (ms) */

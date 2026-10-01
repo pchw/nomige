@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import type { AnimalId } from "~/games/characters";
+import { CHARACTERS, type AnimalId } from "~/games/characters";
 import type { GameId } from "~/games/types";
+import { Ladder } from "./games/AmidakujiUI";
 import { Trump } from "./games/HighLowUI";
 import { PlayingCardView } from "./games/HundredOneUI";
 import { Die } from "./games/LiarsDiceUI";
@@ -922,6 +923,100 @@ function russianRouletteScenes(): Scene[] {
   ];
 }
 
+const AMIDA_PEOPLE: AnimalId[] = ["cat", "dog", "rabbit", "bear"];
+const AMIDA_ADDED = [
+  { row: 0, gap: 0, by: "dog" },
+  { row: 1, gap: 2, by: "bear" },
+];
+const AMIDA_HIDDEN = [
+  { row: 2, gap: 1, by: null },
+  { row: 3, gap: 0, by: null },
+];
+/** ネコ（左端）がたどり着く先 */
+const AMIDA_HAZURE = 2;
+
+/** ルール説明用の4本のあみだくじ */
+function MiniLadder({
+  added = [],
+  open,
+  path,
+  out,
+}: {
+  added?: typeof AMIDA_ADDED;
+  open?: boolean;
+  path?: "draw" | "done";
+  out?: boolean;
+}) {
+  return (
+    <div className="ra-amida">
+      <Ladder
+        columns={4}
+        openRows={2}
+        hiddenRows={2}
+        added={added}
+        hidden={open ? AMIDA_HIDDEN : null}
+        top={AMIDA_PEOPLE.map((c, i) => (
+          <span
+            key={c}
+            className={`amida-start amida-start-taken ${added.length ? "" : "ra-pop"}`}
+            style={delay(0.3 + i * 0.4)}
+          >
+            <Avatar character={c} size="sm" />
+          </span>
+        ))}
+        bottom={[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className={`amida-goal ${i === AMIDA_HAZURE ? "amida-hazure" : ""} ${
+              out && i === AMIDA_HAZURE ? "amida-hit" : ""
+            }`}
+          >
+            {out && i === AMIDA_HAZURE ? (
+              <Avatar character="cat" size="sm" />
+            ) : i === AMIDA_HAZURE ? (
+              "💀"
+            ) : (
+              "○"
+            )}
+          </span>
+        ))}
+        paths={path ? [{ start: 0, color: CHARACTERS.cat.color, animate: path === "draw" }] : []}
+        colorOf={(r) => CHARACTERS[r.by as AnimalId].color}
+      />
+    </div>
+  );
+}
+
+function amidakujiScenes(): Scene[] {
+  return [
+    {
+      caption: "スタートを選ぶ",
+      sub: "下の 💀 がハズレ",
+      body: <MiniLadder />,
+    },
+    {
+      caption: "横線を1本ずつ足す",
+      sub: "下の方は隠れていて見えない",
+      body: <MiniLadder added={AMIDA_ADDED} />,
+    },
+    {
+      caption: "開けて1人ずつたどる",
+      body: <MiniLadder added={AMIDA_ADDED} open path="draw" />,
+    },
+    {
+      caption: "ハズレに着いたら負け",
+      body: (
+        <div className="ra-row">
+          <MiniLadder added={AMIDA_ADDED} open path="done" out />
+          <span className="ra-beer ra-pop" style={delay(0.8)}>
+            アウト🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -946,6 +1041,8 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return beerPongScenes();
     case "russian-roulette":
       return russianRouletteScenes();
+    case "amidakuji":
+      return amidakujiScenes();
   }
 }
 

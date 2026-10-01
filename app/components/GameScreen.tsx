@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { GAMES } from "~/games/registry";
 import type { GameId, PlayerId } from "~/games/types";
 import type { ClientMessage, GameView, RoomView } from "~/protocol";
+import { AmidakujiUI } from "./games/AmidakujiUI";
 import { BeerPongUI } from "./games/BeerPongUI";
 import { BowlingUI } from "./games/BowlingUI";
 import { GlassSlideUI } from "./games/GlassSlideUI";
@@ -29,6 +30,7 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   bowling: BowlingUI,
   "beer-pong": BeerPongUI,
   "russian-roulette": RussianRouletteUI,
+  amidakuji: AmidakujiUI,
 };
 
 interface Props {

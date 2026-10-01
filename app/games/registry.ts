@@ -1,3 +1,4 @@
+import { amidakuji } from "./amidakuji";
 import { beerPong } from "./beer-pong";
 import { bowling } from "./bowling";
 import { glassSlide } from "./glass-slide";
@@ -23,6 +24,7 @@ export const GAMES: Record<GameId, GameDefinition> = {
   bowling,
   "beer-pong": beerPong,
   "russian-roulette": russianRoulette,
+  amidakuji,
 };
 
 export const GAME_ORDER: GameId[] = [
@@ -37,6 +39,7 @@ export const GAME_ORDER: GameId[] = [
   "bowling",
   "beer-pong",
   "russian-roulette",
+  "amidakuji",
 ];
 
 export function isGameId(value: unknown): value is GameId {
