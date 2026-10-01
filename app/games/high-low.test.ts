@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { highLow, isCorrect, type HighLowState, type PlayingCard } from "../high-low";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+import { highLow, isCorrect, type HighLowState, type PlayingCard } from "./high-low";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 const card = (rank: number, suit: PlayingCard["suit"] = "S"): PlayingCard => ({ rank, suit });

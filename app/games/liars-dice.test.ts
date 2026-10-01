@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { countFace, liarsDice, minimumBid, type LiarsDiceState } from "../liars-dice";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+import { countFace, liarsDice, minimumBid, type LiarsDiceState } from "./liars-dice";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

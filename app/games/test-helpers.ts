@@ -1,5 +1,5 @@
-import { createRng } from "../random";
-import type { Ctx } from "../types";
+import { createRng } from "./random";
+import type { Ctx } from "./types";
 
 export function ctxAt(now: number, seed = 1): Ctx {
   return { now, random: createRng(seed).random };

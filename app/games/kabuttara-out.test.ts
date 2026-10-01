@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AnimalId } from "../characters";
-import {
-  autoAnimalCount,
-  findUnique,
-  kabuttaraOut,
-  type KabuttaraOutState,
-} from "../kabuttara-out";
-import { GameError } from "../types";
-import { ctxAt, fixedCtx } from "./helpers";
+import type { AnimalId } from "./characters";
+import { autoAnimalCount, findUnique, kabuttaraOut, type KabuttaraOutState } from "./kabuttara-out";
+import { GameError } from "./types";
+import { ctxAt, fixedCtx } from "./test-helpers";
 
 const players = ["a", "b", "c", "d"];
 

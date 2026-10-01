@@ -7,9 +7,9 @@ import {
   PINS,
   throwBall,
   type BowlingState,
-} from "../bowling";
-import { GameError } from "../types";
-import { fixedCtx } from "./helpers";
+} from "./bowling";
+import { GameError } from "./types";
+import { fixedCtx } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

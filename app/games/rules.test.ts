@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { GAME_ORDER, GAMES } from "../registry";
-import { rulesFor } from "../rules";
+import { GAME_ORDER, GAMES } from "./registry";
+import { rulesFor } from "./rules";
 
 const text = (gameId: Parameters<typeof rulesFor>[0], config: Record<string, unknown>) =>
   JSON.stringify(rulesFor(gameId, config));
