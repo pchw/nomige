@@ -6,10 +6,10 @@ import {
   START_Y,
   TABLE_LENGTH,
   type GlassSlideState,
-} from "../glass-slide";
-import { body, simulate } from "../physics";
-import { GameError } from "../types";
-import { ctxAt, fixedCtx } from "./helpers";
+} from "./glass-slide";
+import { body, simulate } from "./physics";
+import { GameError } from "./types";
+import { ctxAt, fixedCtx } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

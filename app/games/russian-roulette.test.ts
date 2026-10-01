@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  REVEAL_MS,
-  SHOW_MS,
-  russianRoulette,
-  type RussianRouletteState,
-} from "../russian-roulette";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+import { REVEAL_MS, SHOW_MS, russianRoulette, type RussianRouletteState } from "./russian-roulette";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c", "d"];
 

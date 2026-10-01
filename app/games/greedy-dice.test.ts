@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { greedyDice, type GreedyDiceState } from "../greedy-dice";
-import { GameError } from "../types";
-import { ctxAt, fixedCtx } from "./helpers";
+import { greedyDice, type GreedyDiceState } from "./greedy-dice";
+import { GameError } from "./types";
+import { ctxAt, fixedCtx } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

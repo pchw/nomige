@@ -7,9 +7,9 @@ import {
   judge,
   landingPoint,
   type BeerPongState,
-} from "../beer-pong";
-import { GameError } from "../types";
-import { fixedCtx } from "./helpers";
+} from "./beer-pong";
+import { GameError } from "./types";
+import { fixedCtx } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { wolfAndPigs, type House, type WolfAndPigsState } from "../wolf-and-pigs";
-import { ctxAt } from "./helpers";
+import { wolfAndPigs, type House, type WolfAndPigsState } from "./wolf-and-pigs";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c", "d", "w"];
 

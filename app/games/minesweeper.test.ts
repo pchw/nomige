@@ -5,9 +5,9 @@ import {
   neighbors,
   obviousSafeCells,
   type MinesweeperState,
-} from "../minesweeper";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+} from "./minesweeper";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

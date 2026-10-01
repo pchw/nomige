@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { applyCard, buildDeck, hundredOne, type Card, type HundredOneState } from "../hundred-one";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+import { applyCard, buildDeck, hundredOne, type Card, type HundredOneState } from "./hundred-one";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c"];
 

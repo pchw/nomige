@@ -8,9 +8,9 @@ import {
   loserOf,
   trace,
   type AmidakujiState,
-} from "../amidakuji";
-import { GameError } from "../types";
-import { ctxAt } from "./helpers";
+} from "./amidakuji";
+import { GameError } from "./types";
+import { ctxAt } from "./test-helpers";
 
 const players = ["a", "b", "c", "d"];
 
