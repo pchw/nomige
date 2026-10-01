@@ -75,4 +75,10 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1分",
     style: "手番制・運",
   },
+  amidakuji: {
+    emoji: "🪜",
+    color: "var(--sky)",
+    duration: "1分",
+    style: "手番制・運",
+  },
 };
