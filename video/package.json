@@ -1,0 +1,27 @@
+{
+  "name": "nomige-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio --port 3000 --no-open --ipv4",
+    "audio": "python3 scripts/make_audio.py",
+    "render": "remotion render Promo out/promo-9x16.mp4 && remotion render PromoSquare out/promo-1x1.mp4 && remotion render PromoWide out/promo-16x9.mp4",
+    "post": "sh scripts/post.sh",
+    "sheet": "python3 scripts/contact_sheet.py out/promo-9x16.mp4 out/contact-sheet.png",
+    "build": "npm run audio && npm run render && npm run post && npm run sheet",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "@remotion/google-fonts": "4.0.532",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
