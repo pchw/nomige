@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CHARACTERS, type AnimalId } from "~/games/characters";
 import type { GameId } from "~/games/types";
 import { Ladder } from "./games/AmidakujiUI";
+import { GuessColumn, Mark, Pegs } from "./games/HitAndBlowUI";
 import { Trump } from "./games/HighLowUI";
 import { PlayingCardView } from "./games/HundredOneUI";
 import { Die } from "./games/LiarsDiceUI";
@@ -1017,6 +1018,72 @@ function amidakujiScenes(): Scene[] {
   ];
 }
 
+const HB_ROWS: { by: AnimalId; marks: number[]; hits: number; blows: number }[] = [
+  { by: "dog", marks: [3, 3, 4, 4], hits: 0, blows: 0 },
+  { by: "rabbit", marks: [1, 1, 4, 0], hits: 1, blows: 2 },
+  { by: "cat", marks: [0, 1, 1, 2], hits: 4, blows: 0 },
+];
+
+function hitAndBlowScenes(): Scene[] {
+  const column = (row: (typeof HB_ROWS)[number], i: number, out?: boolean) => (
+    <span key={row.by} className="ra-pop" style={delay(0.2 + i * 0.4)}>
+      <GuessColumn
+        className={out ? "hb-col-last" : ""}
+        head={<Avatar character={row.by} size="sm" />}
+        marks={row.marks}
+        foot={<Pegs hits={row.hits} blows={row.blows} slots={4} />}
+      />
+    </span>
+  );
+  return [
+    {
+      caption: "隠れた並びを当てる",
+      sub: "同じマークが入ることもある",
+      body: (
+        <div className="ra-row">
+          <GuessColumn head="答え" marks={[null, null, null, null]} foot="？" />
+        </div>
+      ),
+    },
+    {
+      caption: "上から順に選ぶ",
+      sub: "自分の番に1回予想",
+      body: (
+        <div className="ra-row">
+          <div className="hb-col hb-col-draft">
+            <div className="hb-col-head">
+              <Avatar character="rabbit" size="sm" />
+            </div>
+            {HB_ROWS[1].marks.map((m, i) => (
+              <span key={i} className="hb-slot ra-pop" style={delay(0.3 + i * 0.5)}>
+                <Mark mark={m} />
+              </span>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      caption: "●と○の数だけ分かる",
+      sub: "●位置も正解 ○マークだけ正解",
+      body: <div className="ra-row">{HB_ROWS.slice(0, 2).map((r, i) => column(r, i))}</div>,
+    },
+    {
+      caption: "当たったら決着",
+      sub: "一番遠かった人が負け",
+      body: (
+        <div className="ra-row">
+          {HB_ROWS.map((r, i) => column(r, i, r.by === "cat"))}
+          <span className="ra-beer ra-pop" style={delay(1.6)}>
+            <Avatar character="dog" size="sm" />
+            アウト🍺
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -1043,6 +1110,8 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return russianRouletteScenes();
     case "amidakuji":
       return amidakujiScenes();
+    case "hit-and-blow":
+      return hitAndBlowScenes();
   }
 }
 

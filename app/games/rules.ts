@@ -1,3 +1,4 @@
+import { MARKS, maxGuessesFor } from "./hit-and-blow";
 import { boardSize } from "./minesweeper";
 import type { GameId } from "./types";
 
@@ -694,6 +695,57 @@ function amidakuji(): RuleDoc {
   };
 }
 
+function hitAndBlow(config: Config): RuleDoc {
+  const slots = config.slots === 5 || config.slots === 6 ? config.slots : 4;
+  return {
+    goal: `${MARKS.length}種類のマークが${slots}個、縦に並んで隠れている。順番に並びを予想して、誰かが当てたら決着。正解から一番遠かった人の負け。`,
+    sections: [
+      {
+        title: "流れ",
+        steps: [
+          `答えは ${MARKS.join("")} のどれかが ${slots} 個、縦に並んだもの。同じマークが何度入ることもある。`,
+          "最初の人はランダム、あとは席順。自分の番になったら、マークを上のマスから順に選んで並べ、「予想する」。",
+          "予想した並びには、● と ○ の数だけが出る。どのマスが合っているかは分からない。",
+          "前の人たちの予想とヒントを見て、次の人が予想する。誰かが全部 ● にしたら決着。",
+        ],
+      },
+      {
+        title: "ヒントの見方",
+        table: {
+          head: ["印", "意味"],
+          rows: [
+            ["●", "マークも位置も合っている"],
+            ["○", "マークは答えにあるが、位置が違う"],
+          ],
+        },
+      },
+      {
+        title: "負け",
+        items: [
+          "各自の「一番良かった予想」を ●2点・○1点 で数える。当てた人を除いて、点数が一番低い人の負け。同点ならルーレット。",
+          "まだ1回も予想していない人は対象外。",
+          `予想できるのは全員合わせて ${maxGuessesFor(slots)} 回（今の設定：${slots}個）。使い切ったら答えを開示して、同じように点数で決める。`,
+        ],
+      },
+      {
+        title: "例",
+        example: [
+          "答えが 🍺🍷🍷🍶 のとき、🍷🍷🍸🍺 と予想すると ●1（2マス目の🍷）○2（🍷と🍺）。",
+          "→ この予想は 1×2 + 2 = 4点。",
+        ],
+      },
+      {
+        title: "みんなで見る",
+        items: [
+          "答えは誰にも見えない。タブレット1台をテーブルに置いたまま、手番の人がそのまま操作する。",
+          "並べたマスをタップすると、そのマスを消せる。",
+          "自分が当てられなくても、次の人に当てられる前に点数を稼いでおこう。",
+        ],
+      },
+    ],
+  };
+}
+
 const BUILDERS: Record<GameId, (config: Config) => RuleDoc> = {
   "hundred-one": hundredOne,
   "liars-dice": liarsDice,
@@ -707,6 +759,7 @@ const BUILDERS: Record<GameId, (config: Config) => RuleDoc> = {
   "beer-pong": beerPong,
   "russian-roulette": russianRoulette,
   amidakuji,
+  "hit-and-blow": hitAndBlow,
 };
 
 export function rulesFor(gameId: GameId, config: Config): RuleDoc {
@@ -720,6 +773,6 @@ export const COMMON_RULES: RuleSection = {
     "制限時間はない。全員（手番制なら手番の人）が選ぶまで待つ。",
     "誰も操作しないまま30秒たつと「おまかせで進める」が出る。2回押すと、待っている人の分をアプリが選んで進める。",
     "負けた人はパス権を1回だけ使える（結果画面で「パス権を使う」）。",
-    "タブレット1台で遊ぶときは、自分の番に「自分です（タップで表示）」を押して手元を見る。被ったらアウト・ハイローは「〇〇さんの番」と出たら、その人がそのまま選ぶ。欲張りサイコロ・地雷原・グラスすべらせ・ボウリング・ビアポン・ロシアンルーレット・あみだくじは手元に隠す情報がないので、そのまま操作する。",
+    "タブレット1台で遊ぶときは、自分の番に「自分です（タップで表示）」を押して手元を見る。被ったらアウト・ハイローは「〇〇さんの番」と出たら、その人がそのまま選ぶ。欲張りサイコロ・地雷原・グラスすべらせ・ボウリング・ビアポン・ロシアンルーレット・あみだくじ・ヒット&ブローは手元に隠す情報がないので、そのまま操作する。",
   ],
 };

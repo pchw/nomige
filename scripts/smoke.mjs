@@ -122,6 +122,11 @@ for (let step = 0; step < 600 && host.room.phase !== "result"; step++) {
           }
           break;
         }
+        case "hit-and-blow":
+          action = t.draft.includes(null)
+            ? { type: "put", mark: Math.floor(Math.random() * 6) }
+            : { type: "guess" };
+          break;
         case "glass-slide":
           action = { type: "slide", x: 20 + Math.random() * 60, power: 60 + Math.random() * 25 };
           break;
