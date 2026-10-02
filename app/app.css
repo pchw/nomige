@@ -20,6 +20,7 @@
   --coral: #ff8a80;
   --lime: #c6f24a;
   --sky: #a8e6ff;
+  --mint: #8ff0d0;
   --muted: #5b5b5b;
   --line: 3px solid var(--ink);
   --line-thin: 2px solid var(--ink);
@@ -3458,6 +3459,212 @@ select {
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* ---------- ヒット&ブロー ---------- */
+
+.btn-mint {
+  background: var(--mint);
+}
+
+.hb-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+
+/* 予想が増えると横に伸びるので、盤の中だけ横スクロールさせる */
+.hb-scroll {
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hb-cols {
+  display: flex;
+  gap: 6px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.hb-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
+  padding: 6px 2px;
+  border: var(--line-thin);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+
+.hb-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+}
+
+.hb-col-last {
+  outline: 3px solid var(--orange);
+  outline-offset: -1px;
+}
+
+.hb-col-last .hb-pegs {
+  animation: pop 400ms ease-out;
+}
+
+.hb-col-draft {
+  background: #fffbe0;
+  border-style: dashed;
+}
+
+.hb-col-answer {
+  background: var(--mint);
+  box-shadow: var(--shadow-sm);
+  animation: pop 500ms ease-out;
+}
+
+.hb-answer-label {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+}
+
+.hb-slot {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+}
+
+.hb-slot-btn {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.hb-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: var(--line-thin);
+  border-radius: 8px;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.hb-mark-empty {
+  border-style: dashed;
+  background: var(--white);
+}
+
+/* 絵文字だけだと酔っていると見分けにくいので、マークごとに地の色を変える */
+.hb-mark-0 {
+  background: var(--amber);
+}
+.hb-mark-1 {
+  background: var(--pink);
+}
+.hb-mark-2 {
+  background: var(--white);
+}
+.hb-mark-3 {
+  background: var(--orange);
+}
+.hb-mark-4 {
+  background: var(--sky);
+}
+.hb-mark-5 {
+  background: var(--lime);
+}
+
+.hb-col-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 20px;
+}
+
+.hb-pegs {
+  display: grid;
+  grid-template-columns: repeat(3, 10px);
+  gap: 3px;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.hb-peg {
+  width: 10px;
+  height: 10px;
+  border: 1px dotted #b5b5b5;
+  border-radius: 50%;
+}
+
+.hb-hit {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+
+.hb-blow {
+  border: 2px solid var(--ink);
+  background: var(--white);
+}
+
+.hb-score {
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.hb-input {
+  max-width: 420px;
+  margin: 12px auto 6px;
+}
+
+.hb-hint {
+  margin: 0 0 8px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.hb-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.hb-pick {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.hb-pick .hb-mark {
+  width: 100%;
+  max-width: 54px;
+  height: 54px;
+  font-size: 1.8rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.hb-pick:active:not(:disabled) .hb-mark {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.hb-pick:disabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 /* ---------- Animations ---------- */

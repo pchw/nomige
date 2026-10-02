@@ -81,4 +81,10 @@ export const GAME_META: Record<GameId, GameMeta> = {
     duration: "1分",
     style: "手番制・運",
   },
+  "hit-and-blow": {
+    emoji: "🎯",
+    color: "var(--mint)",
+    duration: "1〜3分",
+    style: "手番制・推理",
+  },
 };

@@ -4,6 +4,7 @@ import { bowling } from "./bowling";
 import { glassSlide } from "./glass-slide";
 import { greedyDice } from "./greedy-dice";
 import { highLow } from "./high-low";
+import { hitAndBlow } from "./hit-and-blow";
 import { hundredOne } from "./hundred-one";
 import { kabuttaraOut } from "./kabuttara-out";
 import { liarsDice } from "./liars-dice";
@@ -25,6 +26,7 @@ export const GAMES: Record<GameId, GameDefinition> = {
   "beer-pong": beerPong,
   "russian-roulette": russianRoulette,
   amidakuji,
+  "hit-and-blow": hitAndBlow,
 };
 
 export const GAME_ORDER: GameId[] = [
@@ -40,6 +42,7 @@ export const GAME_ORDER: GameId[] = [
   "beer-pong",
   "russian-roulette",
   "amidakuji",
+  "hit-and-blow",
 ];
 
 export function isGameId(value: unknown): value is GameId {

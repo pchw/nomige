@@ -8,6 +8,7 @@ import { BowlingUI } from "./games/BowlingUI";
 import { GlassSlideUI } from "./games/GlassSlideUI";
 import { GreedyDiceUI } from "./games/GreedyDiceUI";
 import { HighLowUI } from "./games/HighLowUI";
+import { HitAndBlowUI } from "./games/HitAndBlowUI";
 import { HundredOneUI } from "./games/HundredOneUI";
 import { KabuttaraOutUI } from "./games/KabuttaraOutUI";
 import { LiarsDiceUI } from "./games/LiarsDiceUI";
@@ -31,6 +32,7 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "beer-pong": BeerPongUI,
   "russian-roulette": RussianRouletteUI,
   amidakuji: AmidakujiUI,
+  "hit-and-blow": HitAndBlowUI,
 };
 
 interface Props {
