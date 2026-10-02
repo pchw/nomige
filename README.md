@@ -1,9 +1,10 @@
 # NOMIGE（飲みゲー）
 
-3〜10人で遊べる飲みゲーのウェブアプリ。テーブルに置いたタブレット1台でも、各自のスマホでも遊べる。
+2〜10人で遊べる飲みゲーのウェブアプリ。テーブルに置いたタブレット1台でも、各自のスマホでも遊べる。
 
 - ゲームのルールと設計: [doc/games/](doc/games/README.md)
 - 本番デプロイ手順: [doc/deploy.md](doc/deploy.md)
+- プロモーション動画: [video/](video/README.md)
 - 技術: React Router v8（フレームワークモード / flat routes）+ Cloudflare Workers + Durable Objects（WebSocket でリアルタイム同期）
 
 ## 開発環境
@@ -47,4 +48,5 @@ app/
   client/useRoom.ts    # WebSocket 接続フック
   protocol.ts          # クライアント・サーバー間のメッセージ型
 workers/app.ts         # Worker エントリ（React Router + Durable Object の export）
+video/                 # プロモーション動画（Remotion。アプリとは別パッケージ）
 ```

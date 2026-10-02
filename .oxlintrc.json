@@ -10,5 +10,5 @@
     "typescript/no-explicit-any": "off",
     "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }]
   },
-  "ignorePatterns": [".react-router/**", "build/**", "worker-configuration.d.ts"]
+  "ignorePatterns": [".react-router/**", "build/**", "worker-configuration.d.ts", "video/**"]
 }
