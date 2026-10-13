@@ -116,12 +116,17 @@ export class Room extends DurableObject<Env> {
       await this.commit(handleTimer(room, now));
       return;
     }
-    if (this.ctx.getWebSockets().length === 0 && now - room.lastActiveAt >= IDLE_TTL_MS) {
+    if (now - room.lastActiveAt < IDLE_TTL_MS) {
+      await this.scheduleAlarm();
+      return;
+    }
+    if (this.ctx.getWebSockets().length === 0) {
       await this.ctx.storage.deleteAll();
       this.room = null;
       return;
     }
-    await this.scheduleAlarm();
+    // 接続が残っている間は消さない。scheduleAlarm だと過去の時刻になり即発火し続けるので、今から数え直す
+    await this.ctx.storage.setAlarm(now + IDLE_TTL_MS);
   }
 
   private async hello(ws: WebSocket, msg: Extract<ClientMessage, { type: "hello" }>) {
