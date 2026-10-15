@@ -21,6 +21,7 @@
   --lime: #c6f24a;
   --sky: #a8e6ff;
   --mint: #8ff0d0;
+  --peach: #ffc29e;
   --muted: #5b5b5b;
   --line: 3px solid var(--ink);
   --line-thin: 2px solid var(--ink);
@@ -3665,6 +3666,170 @@ select {
 .hb-pick:disabled {
   cursor: default;
   opacity: 0.4;
+}
+
+/* ---------- ニューニュー ---------- */
+
+.btn-peach {
+  background: var(--peach);
+}
+
+.nn-runoff {
+  margin: 0 0 10px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.nn-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nn-row {
+  padding: 8px 10px;
+  border: var(--line-thin);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+
+.nn-row-turn {
+  border-style: dashed;
+  background: #fffbe0;
+}
+
+.nn-row-low {
+  background: #ffe3ee;
+}
+
+.nn-row-niuniu {
+  background: #fff4c2;
+  box-shadow: var(--shadow-sm);
+}
+
+.nn-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 34px;
+  margin: 0 0 6px;
+}
+
+.nn-name {
+  font-weight: bold;
+}
+
+.nn-row-head .nn-points {
+  margin-left: auto;
+}
+
+.nn-tag {
+  padding: 1px 8px;
+  border: var(--line-thin);
+  border-radius: 999px;
+  background: var(--yellow);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.nn-tag-next {
+  background: var(--white);
+}
+
+.nn-tag-low {
+  background: var(--pink);
+  animation: pop 300ms ease-out;
+}
+
+/* 点数は手札がめくれ終わってから出す（NiuniuUI の REVEAL_MS と合わせる） */
+.nn-points {
+  padding: 0 10px;
+  border: var(--line-thin);
+  border-radius: 8px;
+  background: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.3;
+  animation: pop 400ms ease-out 1s both;
+}
+
+.nn-points-none {
+  background: #e4e4e4;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 2;
+}
+
+.nn-points-niuniu {
+  background: linear-gradient(90deg, var(--yellow), var(--peach), var(--pink));
+  box-shadow: var(--shadow-sm);
+  font-size: 1.3rem;
+  line-height: 1.6;
+  animation:
+    pop 400ms ease-out 1s both,
+    shake 400ms ease-in-out 1.4s 3;
+}
+
+.nn-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.nn-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.nn-group-cards {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+}
+
+/* 10の倍数になった3枚 */
+.nn-group-ten .nn-group-cards {
+  background: var(--peach);
+}
+
+.nn-sum {
+  font-size: 0.8rem;
+  font-weight: bold;
+  animation: pop 300ms ease-out 0.9s both;
+}
+
+.nn-cards .trump {
+  width: 46px;
+  height: 64px;
+  box-shadow: none;
+}
+
+.nn-cards .trump-back {
+  font-size: 1.6rem;
+}
+
+.nn-cards .trump-rank {
+  font-size: 1.25rem;
+}
+
+.nn-cards .trump-suit {
+  font-size: 1rem;
+}
+
+.nn-flip {
+  display: inline-flex;
+  animation: flip 300ms ease-out both;
+}
+
+.nn-note {
+  margin: 10px 0 0;
+  text-align: center;
 }
 
 /* ---------- Animations ---------- */
