@@ -127,6 +127,9 @@ for (let step = 0; step < 600 && host.room.phase !== "result"; step++) {
             ? { type: "put", mark: Math.floor(Math.random() * 6) }
             : { type: "guess" };
           break;
+        case "niuniu":
+          action = { type: "flip" };
+          break;
         case "glass-slide":
           action = { type: "slide", x: 20 + Math.random() * 60, power: 60 + Math.random() * 25 };
           break;

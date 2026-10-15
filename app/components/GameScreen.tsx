@@ -13,6 +13,7 @@ import { HundredOneUI } from "./games/HundredOneUI";
 import { KabuttaraOutUI } from "./games/KabuttaraOutUI";
 import { LiarsDiceUI } from "./games/LiarsDiceUI";
 import { MinesweeperUI } from "./games/MinesweeperUI";
+import { NiuniuUI } from "./games/NiuniuUI";
 import { RussianRouletteUI } from "./games/RussianRouletteUI";
 import type { GameUIProps } from "./games/types";
 import { WolfAndPigsUI } from "./games/WolfAndPigsUI";
@@ -33,6 +34,7 @@ const GAME_UI: Record<GameId, ComponentType<GameUIProps<any, any, any>>> = {
   "russian-roulette": RussianRouletteUI,
   amidakuji: AmidakujiUI,
   "hit-and-blow": HitAndBlowUI,
+  niuniu: NiuniuUI,
 };
 
 interface Props {

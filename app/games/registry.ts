@@ -9,6 +9,7 @@ import { hundredOne } from "./hundred-one";
 import { kabuttaraOut } from "./kabuttara-out";
 import { liarsDice } from "./liars-dice";
 import { minesweeper } from "./minesweeper";
+import { niuniu } from "./niuniu";
 import { russianRoulette } from "./russian-roulette";
 import type { GameDefinition, GameId } from "./types";
 import { wolfAndPigs } from "./wolf-and-pigs";
@@ -27,6 +28,7 @@ export const GAMES: Record<GameId, GameDefinition> = {
   "russian-roulette": russianRoulette,
   amidakuji,
   "hit-and-blow": hitAndBlow,
+  niuniu,
 };
 
 export const GAME_ORDER: GameId[] = [
@@ -43,6 +45,7 @@ export const GAME_ORDER: GameId[] = [
   "russian-roulette",
   "amidakuji",
   "hit-and-blow",
+  "niuniu",
 ];
 
 export function isGameId(value: unknown): value is GameId {

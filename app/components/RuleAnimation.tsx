@@ -1,11 +1,14 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { CHARACTERS, type AnimalId } from "~/games/characters";
+import type { PlayingCard } from "~/games/high-low";
+import { NO_NIU, pointsLabel } from "~/games/niuniu";
 import type { GameId } from "~/games/types";
 import { Ladder } from "./games/AmidakujiUI";
 import { GuessColumn, Mark, Pegs } from "./games/HitAndBlowUI";
 import { Trump } from "./games/HighLowUI";
 import { PlayingCardView } from "./games/HundredOneUI";
 import { Die } from "./games/LiarsDiceUI";
+import { CardGroup, HandCards, Points } from "./games/NiuniuUI";
 import { Avatar } from "./ui";
 
 /**
@@ -1084,6 +1087,76 @@ function hitAndBlowScenes(): Scene[] {
   ];
 }
 
+/** ランクとマークを短く書く（"3S" → ♠3） */
+const nn = (...cards: string[]): PlayingCard[] =>
+  cards.map((c) => ({ rank: Number(c.slice(0, -1)), suit: c.at(-1) as PlayingCard["suit"] }));
+
+const NN_PEOPLE: { c: AnimalId; points: number }[] = [
+  { c: "cat", points: 4 },
+  { c: "dog", points: 10 },
+  { c: "bear", points: 0 },
+];
+
+function niuniuScenes(): Scene[] {
+  return [
+    {
+      caption: "5枚ずつ配られる",
+      sub: "誰にも見えない。順番にめくる",
+      body: (
+        <div className="ra-row">
+          <Who c="cat" />
+          <HandCards hand={null} />
+        </div>
+      ),
+    },
+    {
+      caption: "3枚で10の倍数を作る",
+      sub: "J・Q・K は 10 と数える",
+      body: (
+        <div className="ra-row nn-cards">
+          <CardGroup cards={nn("3S", "7H", "13C")} ten caption="3+7+10 = 20" />
+        </div>
+      ),
+    },
+    {
+      caption: "残り2枚の下一桁が点数",
+      sub: "9+5 = 14 → 4",
+      body: (
+        <div className="ra-row nn-cards">
+          <CardGroup cards={nn("9D", "5S")} caption="9+5 = 14" />
+          <Points points={4} />
+        </div>
+      ),
+    },
+    {
+      caption: "残りも10ならニューニュー",
+      sub: "最強！",
+      body: (
+        <div className="ra-row nn-cards">
+          <CardGroup cards={nn("4H", "6C", "11S")} ten caption="4+6+10 = 20" />
+          <CardGroup cards={nn("3D", "7S")} from={3} caption="3+7 = 10" />
+          <Points points={10} />
+        </div>
+      ),
+    },
+    {
+      caption: "一番低い人が負け",
+      sub: "10の倍数が作れないとウーニュー（最弱）",
+      body: (
+        <div className="ra-results">
+          {NN_PEOPLE.map((p, i) => (
+            <span key={p.c} className="ra-result ra-pop" style={delay(0.2 + i * 0.4)}>
+              <Avatar character={p.c} size="sm" />
+              <b>{pointsLabel(p.points)}</b>
+              {p.points === NO_NIU && <span>🍺</span>}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+  ];
+}
+
 export function scenesFor(gameId: GameId, config: Config): Scene[] {
   switch (gameId) {
     case "hundred-one":
@@ -1112,6 +1185,8 @@ export function scenesFor(gameId: GameId, config: Config): Scene[] {
       return amidakujiScenes();
     case "hit-and-blow":
       return hitAndBlowScenes();
+    case "niuniu":
+      return niuniuScenes();
   }
 }
 
