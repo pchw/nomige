@@ -18,6 +18,22 @@ services:
     tty: true
     stdin_open: true
 
+  # プロモーション動画（video/）。普段は起動せず `docker compose --profile video ...` で使う
+  video:
+    profiles: ["video"]
+    build: ./video
+    working_dir: /work/video
+    command: sh -c "npm install && npm run studio"
+    ports:
+      - "3000:3000"
+    volumes:
+      # ../app のコンポーネントを再利用するのでリポジトリ全体をマウントする
+      - .:/work
+      - video_node_modules:/work/video/node_modules
+    tty: true
+    stdin_open: true
+
 volumes:
   node_modules:
+  video_node_modules:
   wrangler_config:
